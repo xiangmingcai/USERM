@@ -24,3 +24,9 @@ navbar:
         href: articles/instruction_customFCS.html
       - text: "Interpret High Coef"
         href: articles/instruction_interprateHighCoef.html
+      - text: "Check Res Object"
+        href: articles/instruction_interprateHighCoef.html
+
+footer:
+  structure:
+    right: [developed_by]

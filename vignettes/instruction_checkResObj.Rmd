@@ -1,0 +1,109 @@
+---
+title: "Check Res Obj Instruction"
+output: rmarkdown::html_document
+vignette: >
+  %\VignetteIndexEntry{CheckResObj Instruction}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+# instruction for Res Obj check
+
+Xiangming Cai
+
+2026-01-28
+
+## 🔍 Introduction
+
+The ResObj Object contains all relavant informations. If you are interested, please read our paper (mentioned on the top) to know the concepts of each matrix shown here. See [CreateRes](https://xiangmingcai.github.io/USERM/reference/CreateRes.html) and [SlopEstimation](https://xiangmingcai.github.io/USERM/reference/SlopEstimation.html) for detailed introduction of the structure of ResObj.
+
+
+## 💻 Installation
+
+You can install the development version of USERM from [GitHub](https://github.com/xiangmingcai/USERM) with:
+
+``` r
+devtools::install_github("xiangmingcai/USERM")
+```
+
+## Step 1 📈 query avalilable fluorescence list
+
+You can use querySig function to query all available fluorescence.
+
+``` r
+library(USERM)
+Sig_info = querySig()
+head(Sig_info)
+```
+
+``` r
+> head(Sig_info)
+                    id PrimaryName SecondaryName detectors instrument       Source Note
+1  SCC_Bead_CD4_NFR700         CD4        NFR700        51     Xenith XiangmingCai   NA
+2   SCC_Bead_CD3_BV510         CD3         BV510        51     Xenith XiangmingCai   NA
+3    SCC_Bead_CD2_FITC         CD2          FITC        51     Xenith XiangmingCai   NA
+4       SCC_Bead_AF_AF          AF            AF        51     Xenith XiangmingCai   NA
+5   SCC_Bead_CD8_BV570         CD8         BV570        51     Xenith XiangmingCai   NA
+6 SCC_Bead_CD16_BUV805        CD16        BUV805        51     Xenith XiangmingCai   NA
+```
+
+To check signature of a specific fluroescence, you may
+
+``` r
+fluor_to_check = Sig_info$id[3]
+print(fluor_to_check)
+checkSig_linePlot(id = fluor_to_check)
+```
+``` r
+> print(fluor_to_check)
+[1] "SCC_Bead_CD2_FITC"
+```
+![](../man/figures/checkSig_linePlot.jpg){width=500}
+
+
+These available fluorescence were preprocessed with parameters extracted for residual model. To access the corresponding residaul model and its parameters, you can use the getRes function.
+
+``` r
+ResObj = getRes(id = fluor_to_check)
+```
+![](../man/figures/ResObj.jpg){width=500}
+
+
+
+You can easily visaulize all these matrixes, when you are interested in any one of them.
+
+To check the slop matrix:
+``` r
+checkRes_slopMtx(Res = ResObj)
+```
+
+![](../man/figures/slopmtx.jpg){width=500}
+
+To check the intercept matrix:
+``` r
+checkRes_interceptMtx(Res = ResObj)
+```
+
+![](../man/figures/interceptmtx.jpg){width=500}
+
+You can check the covariance matrix at a specified fluorescence intensity (bin):
+``` r
+print(ResObj$bin_mids)
+checkRes_covMtx(Res = ResObj,bin=3)
+```
+
+![](../man/figures/covmtx.jpg){width=500}
+
+
+You can even check the linear fitting of covariance versus fluorescence intensity (bin) between two speific detectors:
+``` r
+print(ResObj$detectors)
+checkRes_covScatter(Res = ResObj,
+                    detector1 = ResObj$detectors[1],
+                    detector2 = ResObj$detectors[2])
+```
+
+![](../man/figures/covscatter.jpg){width=500}
+
+

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">USERM</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,6 +34,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/instruction_basic.html">Basic Instruction</a></li>
+    <li><a class="dropdown-item" href="../articles/instruction_checkResObj.html">Check Res Obj Instruction</a></li>
     <li><a class="dropdown-item" href="../articles/instruction_customFCS.html">Use Custom SCC</a></li>
     <li><a class="dropdown-item" href="../articles/instruction_interprateHighCoef.html">Interprate Spread</a></li>
   </ul>
@@ -70,7 +71,7 @@
 <h2 id="interprate-the-observed-spread-with-userm">Interprate the observed spread with USERM<a class="anchor" aria-label="anchor" href="#interprate-the-observed-spread-with-userm"></a>
 </h2>
 <p>Xiangming Cai</p>
-<p>2025-11-22</p>
+<p>2026-01-28</p>
 <div class="section level3">
 <h3 id="introduction">🔍 Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h3>
@@ -214,8 +215,10 @@ BV510.</p>
 <div class="section level3">
 <h3 id="why-there-is-a-high-spread">Why there is a high spread?<a class="anchor" aria-label="anchor" href="#why-there-is-a-high-spread"></a>
 </h3>
-<p>Let’s first take a look at the key part of the residual model<a class="footnote-ref" tabindex="0" data-bs-toggle="popover" data-bs-content="&lt;p&gt;Xiangming Cai, Sara Garcia-Garcia, Nick Rohrbacker,
-Michaela Gianniou, Juan J. Garcia Vallejo. Manuscript in preparation.&lt;/p&gt;"><sup>1</sup></a>, which is
+<p>Let’s first take a look at the key part of the residual model<a class="footnote-ref" tabindex="0" data-bs-toggle="popover" data-bs-content="&lt;p&gt;Xiangming Cai, Sara Garcia-Garcia, Leo Kuhnen, Michaela
+Gianniou, Juan J. Garcia Vallejo. Unmixing Spread Estimation Based on
+Residual Model in Spectral Flow Cytometry. bioRxiv 2026.01.27.701929;
+doi: 10.64898/2026.01.27.701929&lt;/p&gt;"><sup>1</sup></a>, which is
 used to predict the spread from a SCC fluorescence
 <strong><em>h</em></strong> (PECy7) into the fluorescence
 <strong><em>k</em></strong> (BV510):</p>
@@ -298,8 +301,10 @@ visualize the slope matrix of the fluorescence
 <p>The whole matrix is the slope matrix. The
 <strong><em>slope</em></strong> matrix is a <strong><em>m</em></strong>
 detectors x <strong><em>m</em></strong> detectors matrix. Each detector
-has its own residual signals (see <a class="footnote-ref" tabindex="0" data-bs-toggle="popover" data-bs-content="&lt;p&gt;Xiangming Cai, Sara Garcia-Garcia, Nick Rohrbacker,
-Michaela Gianniou, Juan J. Garcia Vallejo. Manuscript in preparation.&lt;/p&gt;"><sup>2</sup></a>), which accounts to the spread in
+has its own residual signals (see <a class="footnote-ref" tabindex="0" data-bs-toggle="popover" data-bs-content="&lt;p&gt;Xiangming Cai, Sara Garcia-Garcia, Leo Kuhnen, Michaela
+Gianniou, Juan J. Garcia Vallejo. Unmixing Spread Estimation Based on
+Residual Model in Spectral Flow Cytometry. bioRxiv 2026.01.27.701929;
+doi: 10.64898/2026.01.27.701929&lt;/p&gt;"><sup>2</sup></a>), which accounts to the spread in
 fluroescence <strong><em>k</em></strong>. The covariance between
 detector <strong><em>i</em></strong> and detector
 <strong><em>j</em></strong> will be calculated. The covariance is
@@ -487,20 +492,9 @@ the panel design better.</p>
 <div class="section level3">
 <h3 id="citation">📚 Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h3>
-<p>If you use this package in your research, please cite our paper and
-the package as:</p>
-<pre><code>Xiangming Cai, Sara Garcia-Garcia, Leo Kuhnen, Michaela Gianniou, Juan J. Garcia Vallejo. Manuscript in preparation. (to be update)
-
-Cai X (2025). _USERM: Unmixing Spread Estimation with Residual Model_. R package version
-  1.0.0,  &lt;https://github.com/xiangmingcai/USERM&gt;.
-  
-@Manual{,
-    title = {USERM: Unmixing Spread Estimation with Residual Model},
-    author = {Xiangming Cai},
-    year = {2025},
-    note = {R package version 1.0.0},
-    url = {https://github.com/xiangmingcai/USERM},
-  }</code></pre>
+<p>If you use this package in your research, please cite our paper:</p>
+<pre><code>Xiangming Cai, Sara Garcia-Garcia, Leo Kuhnen, Michaela Gianniou, Juan J. Garcia Vallejo. Unmixing Spread Estimation Based on Residual Model in Spectral Flow Cytometry. 
+bioRxiv 2026.01.27.701929; doi: https://doi.org/10.64898/2026.01.27.701929</code></pre>
 </div>
 </div>
 
@@ -515,7 +509,7 @@ Cai X (2025). _USERM: Unmixing Spread Estimation with Residual Model_. R package
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p>Developed by <a href="https://github.com/xiangmingcai" class="external-link">Xiangming Cai</a>.</p>
 </div>
 
     </footer>

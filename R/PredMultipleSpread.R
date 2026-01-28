@@ -673,6 +673,17 @@ PredMultipleSpread = function(Userm,population_ids){
       rownames(Coef_matrix) = colnames(A)
       Coef_matrix = t(Coef_matrix)
 
+      for (row in 1:nrow(Coef_matrix)) {
+        for (col in 1:ncol(Coef_matrix)) {
+          if(Coef_matrix[row,col] < 0){
+            Coef_matrix[row,col] = -sqrt(abs(Coef_matrix[row,col]))
+          }else if(Coef_matrix[row,col] > 0){
+            Coef_matrix[row,col] = sqrt(Coef_matrix[row,col])
+          }
+        }
+      }
+      diag(Coef_matrix) = 0# residual model cannot predict spread at the positive axis
+
       HTML(Userm_html_table(mat = Coef_matrix,
                             val_min = color_cache$matrix["coef_mtx","min"],
                             val_mid = color_cache$matrix["coef_mtx","mid"],

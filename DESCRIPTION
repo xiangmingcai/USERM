@@ -1,6 +1,6 @@
 Package: USERM
 Title: Unmixing Spread Estimation with Residual Model
-Version: 1.0.0
+Version: 1.0.1
 Authors@R: 
     person("Xiangming", "Cai", , "xiangming_cai@126.com", role = c("aut", "cre"))
 Description: The USERM estimates the spread of unmixed data for spectral flow cytometry.
@@ -27,3 +27,4 @@ Imports:
     lsa
 URL: https://xiangmingcai.github.io/USERM
 BugReports: https://github.com/xiangmingcai/USERM/issues
+Config/pkgdown/citation: false

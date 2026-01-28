@@ -10,12 +10,12 @@ vignette: >
 
 Xiangming Cai
 
-2025-11-22
+2026-01-28
 
 ## 🔍 Introduction
 The USERM supports predicting spread for unmixed spectral flow cytometry data, which helps for panel design and interpratation of unmixed results. There are over 200 built-in Single-color controls (SCCs) provided by the USERM. However, users can also apply USERM on their own SCCs. This helps when users need specific fluorescence not provided by USERM, or when they are using instruments not included in the USERM.
 
-In this instruction, we will show how to apply USERM on custom SCCs. We need to first extract signatures from SCCs and prepare res objects for each SCC. Then, we can easily predict with these custom SCCs (or together with built-in SCCs).
+In this instruction, we will show how to apply USERM on custom SCCs. We need to first extract signatures from SCCs and prepare res objects for each SCC. Then, we can easily predict with these custom SCCs (or together with built-in SCCs). For Spillover Spreading Matrix (SSM) calculation, we also need to prepare ssm objects.
 
 ## Step 0 📈 load packages and set custom_dir
 
@@ -34,11 +34,12 @@ library(ComplexHeatmap)
 custom_dir = "E:/MyFolder"
 dir.create(paste0(custom_dir,"/sig"))
 dir.create(paste0(custom_dir,"/res"))
+dir.create(paste0(custom_dir,"/ssm"))
 ```
-The custom_dir will store generated files, which is required for prediction.
+The custom_dir will store generated files, which is required for prediction. Please change the custom_dir to your local output folder.
 
 ## Step 1 📈 Prepare signature
-We need to prepare signatures for each SCC seperately. The steps for extracting Autofluroescence (AF) are almost the same, unless specified. 
+We need to prepare signatures for each SCC seperately. The steps for Autofluroescence (AF) extraction are almost the same, unless specified.
 
 Normally, unstained sample is needed for AF extraction. However, you can extract AF from negative population in SCC if you do not have unstained sample.
 
@@ -46,8 +47,10 @@ Normally, unstained sample is needed for AF extraction. However, you can extract
 
 
 ``` r
-data = read.FCS("E:/Data/SCC_Cell_CD2_SB780 Run 1 20251024102726.fcs") #set the path to your SCC .fcs file
-# data = read.FCS("E:/Data/unstained_1 Run 1 20251024100712.fcs") #this is for AF
+data_path = system.file("example_data", "SCC_Cell_CD2_SB780.fcs", package = "USERM")
+print(data_path)
+data = read.FCS(data_path) #set the path to your SCC .fcs file
+# data = read.FCS(system.file("example_data", "unstained.fcs", package = "USERM")) #this is for AF
 
 print(head(data@parameters@data$desc))
 print(head(data@parameters@data$name))
@@ -86,6 +89,7 @@ head(data)
 ...
 
 ```
+The detector ids are stored in the data@parameters@data. However, it can be on the desc slot or the name slot, depends on the flow instrument. You need to check it for your own FCS. Here we use desc slot.
 
 ### step 1.2 set scc fcs info
 
@@ -103,15 +107,15 @@ You may use public resource (e.g. fluorofinder) to find the peak channel of your
 
 The save_suf is important name of the SCC, which should be unique. it is recommended to follow the naming pattern shown here. There are 4 elements in the name, which are separated by underscore.
 
-**The first element is "batch" element.** The built-in SCCs use "SCC1", "SCC2", and so on to annotate SCC files acquired in distinct batches.You can use "SCCcustom" to distinguish custom SCCs and built-in SCCs. You can also use others that makes sense to you.
+**The first element is "batch" element.** The built-in SCCs use "SCC1", "SCC2", and so on to annotate SCC files acquired in distinct batches.You can use "SCCcustom" to distinguish custom SCCs and built-in SCCs. You can also use others that make sense to you.
 
-**The second element is "type" element.** Now We only have "Cell" and "Bead".
+**The second element is "type" element.** Now We only have "Cell" and "Bead". You can set it as others like "PBMC" if that make sense to you.
 
 **The third element is "PrimaryName".** Normally we put target of the antibody here，e.g. CD2.
 
 **The last element is "SecondaryName",** Normally we put fluroescence of the antibody here, e.g. SB780.
 
-Please avoid using space or underscore in these elements.
+Please avoid using space or underscore within these elements.
 
 
 
@@ -306,7 +310,7 @@ For AF:
 #For first SCC (that means you do not have a Custom_Sig_list yet)
 Custom_Sig_list = list()
 #If you already have a Custom_Sig_list
-Custom_Sig_list = readRDS(paste0(custom_dir,"/sig/Custom_Sig_list.rds"))
+Custom_Sig_list = readRDS(file.path(custom_dir,"sig","Custom_Sig_list.rds"))
 
 # 2. add signatures to Custom_Sig_list
 Custom_Sig_list[[length(Custom_Sig_list)+1]] = Sig
@@ -316,7 +320,7 @@ names(Custom_Sig_list)[length(Custom_Sig_list)] = Custom_Sig_list[[length(Custom
 # Custom_Sig_list[[length(Custom_Sig_list)]] = NULL
 
 # 3. save updated Custom_Sig_list
-saveRDS(Custom_Sig_list, file = paste0(custom_dir,"/sig/Custom_Sig_list.rds"))
+saveRDS(Custom_Sig_list, file = file.path(custom_dir,"sig","Custom_Sig_list.rds"))
 ``` 
 
 In the end, you should have a Custom_Sig_list containing elements like this:
@@ -327,16 +331,16 @@ In the end, you should have a Custom_Sig_list containing elements like this:
 
 </p>
 
-If you have more SCCs, you should have more elements in the Custom_Sig_list.
+If you have more SCCs, you can repeat these steps and add them all in the Custom_Sig_list.
 
 
 ## Step 2 📈 Prepare res obj
-Now you should have at least one SCC signature and one AF signature(necessary for res obj preparation) in the Custom_Sig_list. If so, we can proceed to prpare res obj for each fluorescence, including the AF.
+Now you should have at least one SCC signature and one AF signature(necessary for res obj preparation) in the Custom_Sig_list. If so, we can proceed to prepare res obj for each fluorescence, including the AF.
 
 ### step 2.1 read Custom_Sig_list and prepare Sig_mtx
 
 ``` r
-Custom_Sig_list = readRDS(paste0(custom_dir,"/sig/Custom_Sig_list.rds"))
+Custom_Sig_list = readRDS(file.path(custom_dir,"sig","Custom_Sig_list.rds"))
 
 Sig_info = querySig(Sig_list = Custom_Sig_list)
 fluors_selected = c(Sig_info$id[c(1,2)])
@@ -354,8 +358,10 @@ Here we need to select all target fluorescence, including AF. The order do not m
 ### step 2.2 read scc fcs
 
 ``` r
-data = read.FCS("E:/Data/SCC_Cell_CD2_SB780 Run 1 20251024102726.fcs")
-# data = read.FCS("E:/Data/unstained_1 Run 1 20251024100712.fcs") #For AF
+data_path = system.file("example_data", "SCC_Cell_CD2_SB780.fcs", package = "USERM")
+print(data_path)
+data = read.FCS(data_path) #set the path to your SCC .fcs file
+# data = read.FCS(system.file("example_data", "unstained.fcs", package = "USERM")) #this is for AF
 
 print(head(data@parameters@data$desc))
 print(head(data@parameters@data$name))
@@ -486,13 +492,13 @@ data_backup = data
 data = sample_n(data, 20000)
 gate_normal<-PolygonGating(df=data, x_col= colnames(Sig_mtx)[idx_target_fluor],
                            y_col= colnames(Sig_mtx)[idx_AF_fluor],
-                           feature_col= colnames(Sig_mtx)[idx_target_fluor],
+                           feature_col= colnames(Sig_mtx)[idx_target_fluor],title_text = "gate stable positive population",
                            parentgate_col= "gate0", newgate_col= "gate_normal",canvas_width=800, canvas_height=400)
 data = data_backup
 data = GateDecider(gate = gate_normal, df = data)
 data = data[data$gate_normal,rownames(Sig_mtx)]
 
-#you may save gate_normal is you want
+#you may save gate_normal if you want
 # saveRDS(list(gate_normal), file = paste0(custom_dir,"/",save_suf,"_gatelist.rds"))
 # saveRDS(c("gate_normal"), file = paste0(custom_dir,"/",save_suf,"_gatenames.rds"))
 ```
@@ -531,7 +537,7 @@ Heatmap(ResObj$slopMtx,col = col_fun, cluster_rows = FALSE,cluster_columns = FAL
           grid.text(sprintf("%.1f", ResObj$slopMtx[i, j]), x, y, gp = gpar(fontsize = 6))
         },column_title = colnames(Sig_mtx)[idx_target_fluor],name = "beta")
 
-saveRDS(ResObj, file = paste0(custom_dir,"/res","/ResObj_",save_suf,".rds"))
+saveRDS(ResObj, file = file.path(custom_dir,"res",paste0("ResObj_",save_suf,".rds")))
 
 ```
 ``` r
@@ -561,7 +567,197 @@ The generated ResObj contains all details, which will be used for prediction.
 
 </p>
 
-## Step 3 Use custom res obj and built-in res obj together to make spread prediction
+
+If you have more SCCs, you can repeat these steps and save all the res object.
+
+
+## Step 3 📈 Prepare ssm obj
+Now we can prepare ssm objects for SSM calculation. If you do not care about SSM, you may skip this part. We do not prepare for AF, which seems meaningless.
+
+### step 3.1 read in scc fcs
+
+
+``` r
+data_path = system.file("example_data", "SCC_Cell_CD2_SB780.fcs", package = "USERM")
+print(data_path)
+data = read.FCS(data_path) #set the path to your SCC .fcs file
+
+print(head(data@parameters@data$desc))
+print(head(data@parameters@data$name))
+desc = data@parameters@data$desc # "desc" or "name" are used for different insruments. Ues the one with correct detector names.
+
+data = exprs(data)
+data = as.data.frame(data)
+colnames(data) = desc
+head(data)
+```
+
+``` r
+> print(head(data@parameters@data$desc))
+       $P1S        $P2S        $P3S        $P4S        $P5S        $P6S 
+     "Time"  "Run Time"  "Event ID" "488 FSC-H" "488 FSC-A" "488 FSC-W" 
+> print(head(data@parameters@data$name))
+      $P1N       $P2N       $P3N       $P4N       $P5N       $P6N 
+    "Time" "Run Time" "Event ID"  "FSC51-H"  "FSC51-A"  "FSC51-W" 
+
+> head(data)
+  Time Run Time Event ID 488 FSC-H 488 FSC-A 488 FSC-W  488 FSC 488 SSC-H 488 SSC-A 488 SSC-W  488 SSC 488 FSC Polar-H
+1  966      966        1  11053.84  11367.57  13671.88 11367.57  26975.94  27930.18  13671.88 27930.18        12814.00
+2  991      991        2  46370.00  53884.65  15234.38 53884.65  92353.13  99999.98  16210.94 99999.98        54518.63
+3 1066     1066        3  53632.18  60693.39  15039.06 60693.39  38315.37  43835.29  15039.06 43835.29        62066.83
+4 1135     1135        4  56737.39  64002.36  15039.06 64002.36  37044.19  43117.40  15429.69 43117.40        66313.27
+5 1233     1233        5  31609.00  36513.11  15429.69 36513.11  40273.66  46527.43  15039.06 46527.43        37028.07
+6 1274     1274        6  21817.04  26400.30  16015.62 26400.30  55891.99  66402.58  15625.00 66402.58        24883.68
+...
+  405 FSC-A 405 FSC-W  405 FSC 405 SSC-H 405 SSC-A 405 SSC-W   405 SSC 349nm - 387/11-A 349nm - 387/11 349nm - 420/10-A
+1  17551.05  13085.94 17551.05  9475.255  9475.971  13476.56  9475.971         2.872925       2.872925        6.1988525
+2  57257.59  13671.88 57257.59 45441.043 53445.719  15234.38 53445.719         4.613342       4.613342        2.5987549
+3  37115.38  13085.94 37115.38 14217.615 15710.759  14648.44 15710.759         2.360291       2.360291        8.5353394
+4  46662.83  12500.00 46662.83 16527.271 18565.000  14843.75 18565.000         6.043884       6.043884        0.7271729
+5  47614.96  11914.06 47614.96 15896.583 17418.504  14257.81 17418.504         1.561584       1.561584        1.0132446
+6  46072.35  13476.56 46072.35 22898.090 27236.199  15625.00 27236.199         2.038452       2.038452        0.8344116
+...
+
+```
+The detector ids are stored in the data@parameters@data. However, it can be on the desc slot or the name slot, depends on the flow instrument. You need to check it for your own FCS. Here we use desc slot.
+
+### step 3.2 set scc fcs info
+
+``` r
+
+peak_channel = '405nm - 770/LP-A' #
+save_suf = "SCCcustom_Cell_CD2_SB780"
+PrimaryName = "CD2"
+SecondaryName = "SB780"
+
+```
+You may use public resource (e.g. fluorofinder) to find the peak channel of your SCC.
+Please keep the save_suf teh same as the fluor's name used in signature extraction.
+
+
+### step 3.3 gate positive popualtion and negative population
+
+In this step, we need to find positive and negative populations. It feels similar to what you did for signature extraction. However, in signature extraction, you may want to gate highest expressed populaiton for better representation. While for SSM object, these gated negative and positive populations will be unmixed before SSM calculation. So, you should gate the the complete and stable population (avoid outlier) to stable SSM calculation. 
+
+Still, we show how to gate a subset population with the GateData
+
+``` r
+# 1. sample cells.
+#You may modify code here to sample specific set for rare markers.
+data$gate0 = TRUE
+data = sample_n(data, 20000)
+
+# 2. gate singlets if need
+# You can change the FSC and SSC names for specific instrument.
+# use colnames(data) to find available paramters
+# colnames(data)
+gate1<-PolygonGating(df=data, x_col= "488 FSC-A", y_col= "488 FSC-H", feature_col= "488 FSC-A",
+                     parentgate_col= "gate0", newgate_col= "gate1",canvas_width=800, canvas_height=400,
+                     title_text = "Gate singlets")
+data <-GateDecider(gate = gate1, df = data)
+gate2<-PolygonGating(df=data, x_col= "488 SSC-A", y_col= "488 SSC-H", feature_col= "488 SSC-A",
+                     parentgate_col= "gate1", newgate_col= "gate2",canvas_width=800, canvas_height=400,
+                     title_text = "Gate singlets")
+data <-GateDecider(gate = gate2, df = data)
+```
+<p align="center">
+
+<img src="../man/figures/custom_sig_gatesiglets_1.jpg" width="500/"/>
+
+</p>
+
+<p align="center">
+
+<img src="../man/figures/custom_sig_gatesiglets_2.jpg" width="500/"/>
+
+</p>
+
+
+``` r
+# 3. gate target population (e.g. lymphocytes)
+gate3<-PolygonGating(df=data, x_col= "488 SSC-A", y_col= "488 FSC-A", feature_col= "488 SSC-A",
+                     parentgate_col= "gate2", newgate_col= "gate3",canvas_width=800, canvas_height=500,
+                     title_text = "Gate target population")
+data <-GateDecider(gate = gate3, df = data)
+```
+<p align="center">
+
+<img src="../man/figures/custom_sig_gatesiglets_3.jpg" width="500/"/>
+
+</p>
+
+``` r
+# 4. gate positive and negative populations.
+data = data[(data[,peak_channel] < quantile(data[,peak_channel],0.990)),]
+data = data[data$gate3,]
+gate_pos<-PolygonGating(df=data, x_col= peak_channel, y_col= "488 SSC-A", feature_col= "488 SSC-A",
+                        parentgate_col= "gate3", newgate_col= "gate_pos",canvas_width=800, canvas_height=400,
+                        title_text = "Gate positive population")
+data <-GateDecider(gate = gate_pos, df = data)
+gate_neg<-PolygonGating(df=data, x_col= peak_channel, y_col= "488 SSC-A", feature_col= "488 SSC-A",
+                        parentgate_col= "gate3", newgate_col= "gate_neg",canvas_width=800, canvas_height=400,
+                        title_text = "Gate negative population")
+data <-GateDecider(gate = gate_neg, df = data)
+
+table(data$gate_pos)
+table(data$gate_neg)
+data_pos = data[data$gate_pos,]
+data_neg = data[data$gate_neg,]
+
+# #you may save the gates if needed.
+# saveRDS(list(gate1,gate2,gate3,gate_pos,gate_neg), file = paste0(custom_dir,"/",save_suf,"_gatelist.rds"))
+# saveRDS(c("gate1","gate2","gate3","gate_pos","gate_neg"), file = paste0(custom_dir,"/",save_suf,"_gatenames.rds"))
+
+``` 
+
+``` r
+> table(data$gate_pos)
+
+FALSE  TRUE 
+11669   361 
+> table(data$gate_neg)
+
+FALSE  TRUE 
+ 6202  5828 
+``` 
+<p align="center">
+
+<img src="../man/figures/custom_ssm_gatesiglets_4.jpg" width="500/"/>
+
+</p>
+
+<p align="center">
+
+<img src="../man/figures/custom_ssm_gatesiglets_5.jpg" width="500/"/>
+
+</p>
+
+
+### step 3.4 extract ssm object
+
+``` r
+#Select detectors. Please select only the detectors for unmixing
+colnames(data)
+cols = colnames(data)[seq(from=28, to=128, by=2)]
+print(cols)
+
+SSMObj = ExtractSSM(df_pos = data_pos,df_neg = data_neg,
+                      cols = cols,method = "median",
+                      PrimaryName = PrimaryName,
+                      SecondaryName = SecondaryName,
+                      id = save_suf,
+                      instrument = "Xenith",
+                      Source = "YourName",
+                      Note = NA)
+
+saveRDS(SSMObj, file = file.path(custom_dir,"ssm",paste0("SSMObj_",save_suf,".rds")))
+print(save_suf)
+
+```
+
+If you have more SCCs, you can repeat these steps and save all the ssm object. Normally we do not need to do this for AF.
+
+## Step 4 Use custom and built-in data together to make spread prediction
 
 Once we have res obj for all custom SCC ready, we can make prediction!
 
@@ -572,11 +768,13 @@ Here we show how to use both custom SCC and built-in SCC together. If you only u
 Note: the custom_dir contains following files now:
 ```
 MyFolder/
+├── sig/                  
+│   └── Custom_Sig_list.rds
 ├── res/                  
 │   ├── ResObj_SCCcustom_Cell_AF_AF.rds          
 │   └── ResObj_SCCcustom_Cell_CD2_SB780.rds
-├── sig/                  
-│   └── Custom_Sig_list.rds
+├── ssm/                  
+│   └── SSMObj_SCCcustom_Cell_CD2_SB780.rds
 ```
 Remember to keep these files, so that you do not need to generate them again next time!
 
@@ -727,22 +925,36 @@ Vis_Mtx(mat = Similarity_mtx,mincolor = "white",midcolor = "white", maxcolor = "
 
 </p>
 
+We can also calculate SSM
+``` r
+print(UsermObj$fluors[1:4])
+print(colnames(UsermObj$A))
+ssm = EstimateSSM(SSM_fluor = UsermObj$fluors[1:4],
+                  Userm = UsermObj,
+                  A = UsermObj$A,quiet = T,custom_ssm_dir = file.path(custom_dir,"ssm"))
+Vis_Mtx(mat = ssm,mincolor = "#B02B38",midcolor = "white", maxcolor = "#95ABDB",
+        max = 2,mid = 0,min = -4,legend_name = "ss",
+        title = "Spillover Spreading Matrix")
+``` 
+``` r
+> print(UsermObj$fluors[1:4])
+[1] "SCC_Cell_CD3_BV510"       "SCC_Cell_CD4_NFR700"      "SCC_Cell_CD8_BV570"       "SCCcustom_Cell_CD2_SB780"
+> print(colnames(UsermObj$A))
+[1] "SCC_Cell_CD3_BV510"       "SCC_Cell_CD4_NFR700"      "SCC_Cell_CD8_BV570"       "SCCcustom_Cell_CD2_SB780"
+[5] "SCCcustom_Cell_AF_AF"  
+``` 
+<p align="center">
+
+<img src="../man/figures/custom_predict_6.jpg" width="500/"/>
+
+</p>
 
 ## 📚 Citation
 
-If you use this package in your research, please cite our paper and the package as:
+If you use this package in your research, please cite our paper:
 ```
-Xiangming Cai, Sara Garcia-Garcia, Leo Kuhnen, Michaela Gianniou, Juan J. Garcia Vallejo. Manuscript in preparation. (to be update)
+Xiangming Cai, Sara Garcia-Garcia, Leo Kuhnen, Michaela Gianniou, Juan J. Garcia Vallejo. Unmixing Spread Estimation Based on Residual Model in Spectral Flow Cytometry. 
+bioRxiv 2026.01.27.701929; doi: https://doi.org/10.64898/2026.01.27.701929
+```
 
-Cai X (2025). _USERM: Unmixing Spread Estimation with Residual Model_. R package version
-  1.0.0,  <https://github.com/xiangmingcai/USERM>.
-  
-@Manual{,
-    title = {USERM: Unmixing Spread Estimation with Residual Model},
-    author = {Xiangming Cai},
-    year = {2025},
-    note = {R package version 1.0.0},
-    url = {https://github.com/xiangmingcai/USERM},
-  }
-```
 

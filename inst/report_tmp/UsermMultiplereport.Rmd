@@ -128,6 +128,17 @@ colnames(Coef_matrix) = colnames(A)
 rownames(Coef_matrix) = colnames(A)
 Coef_matrix = t(Coef_matrix)
 
+for (row in 1:nrow(Coef_matrix)) {
+  for (col in 1:ncol(Coef_matrix)) {
+    if(Coef_matrix[row,col] < 0){
+      Coef_matrix[row,col] = -sqrt(abs(Coef_matrix[row,col]))
+    }else if(Coef_matrix[row,col] > 0){
+      Coef_matrix[row,col] = sqrt(Coef_matrix[row,col])
+    }
+  }
+}
+diag(Coef_matrix) = 0# residual model cannot predict spread at the positive axis
+      
 Coef_html = Userm_html_table(mat = Coef_matrix, val_min = -1, val_mid = 0, val_max = 1,
                      colormin = "#2166ac", colormid = "#f7f7f7", colormax = "#b2182b",Legend = "Slop/beta (-1 to 1)")
 print(Coef_html)

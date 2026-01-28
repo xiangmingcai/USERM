@@ -12,7 +12,7 @@ vignette: >
 
 Xiangming Cai
 
-2025-11-22
+2026-01-28
 
 ## 🔍 Introduction
 
@@ -63,51 +63,6 @@ checkSig_linePlot(id = fluor_to_check)
 ```
 ![](../man/figures/checkSig_linePlot.jpg){width=500}
 
-
-These available fluorescence were preprocessed with parameters extracted for residual model. To access the corresponding residaul model and its parameters, you can use the getRes function.
-
-``` r
-ResObj = getRes(id = fluor_to_check)
-```
-![](../man/figures/ResObj.jpg){width=500}
-
-
-The ResObj Object contains all relavant informations. If you are interested, please read our paper (mentioned on the top) to know the concepts of each matrix shown here. See [CreateRes](https://xiangmingcai.github.io/USERM/reference/CreateRes.html) and [SlopEstimation](https://xiangmingcai.github.io/USERM/reference/SlopEstimation.html) for detailed introduction of the structure of ResObj.
-
-You can easily visaulize all these matrixes, when you are interested in any one of them.
-
-To check the slop matrix:
-``` r
-checkRes_slopMtx(Res = ResObj)
-```
-
-![](../man/figures/slopmtx.jpg){width=500}
-
-To check the intercept matrix:
-``` r
-checkRes_interceptMtx(Res = ResObj)
-```
-
-![](../man/figures/interceptmtx.jpg){width=500}
-
-You can check the covariance matrix at a specified fluorescence intensity (bin):
-``` r
-print(ResObj$bin_mids)
-checkRes_covMtx(Res = ResObj,bin=3)
-```
-
-![](../man/figures/covmtx.jpg){width=500}
-
-
-You can even check the linear fitting of covariance versus fluorescence intensity (bin) between two speific detectors:
-``` r
-print(ResObj$detectors)
-checkRes_covScatter(Res = ResObj,
-                    detector1 = ResObj$detectors[1],
-                    detector2 = ResObj$detectors[2])
-```
-
-![](../man/figures/covscatter.jpg){width=500}
 
 ## Step 2 🖊 Select and rename fluors and create SuprObj
 
@@ -256,8 +211,17 @@ Prediction for more than one population is possible. However, users need to set 
 UsermObj$Intensity_mtx[,2] = 200*c(1:length(UsermObj$fluors))
 UsermObj$Intensity_mtx[,3] = 300*c(1:length(UsermObj$fluors))
 names(UsermObj$Intensity_mtx) = c("P1","P2","P3")
+print(UsermObj$Intensity_mtx)
 PredMultipleSpread(Userm = UsermObj,population_ids = c("P1","P2","P3"))
 ```
+``` r
+> print(UsermObj$Intensity_mtx)
+           P1  P2   P3
+LiveDead  100 200  300
+CD2_FITC  100 400  600
+CD3_BV510 100 600  900
+AF        100 800 1200
+``` 
 <p align="center">
 
 <img src="../man/figures/prediction_11.jpg" width="500/"/>
@@ -267,7 +231,7 @@ All 3 populations will be shown together in the scatter plot. The design and the
 
 ## Step 4 matrics estimation and visualization
 
-The USERM supports multiple matrix tools for panel design, including the Coefficient Matrix, the Hotspot Matrix, and the Similarity Matrix, and the Spread Distance Matrix. All matrix can be visualized with the ***Vis_Mtx*** function.
+The USERM supports multiple matrix tools for panel design, including the Coefficient Matrix, the SSM, the Hotspot Matrix, and the Similarity Matrix. All matrix can be visualized with the ***Vis_Mtx*** function.
 
 To estimate a Coefficient Matrix:
 ``` r
@@ -286,6 +250,26 @@ Vis_Mtx(mat = Coef_mtx,mincolor = "white",midcolor = "white", maxcolor = "#95ABD
 In the Coefficient Matrix, a high coef number indicates high increasing trend of spread from one fluorescence (row) into another fluorescence (column), following the increase of fluorescence intensity. To interpret a high observed coef number and its related severe spread, researchers can use PredOneSpread function to look for the underlying mechanical explanation and potential solutions. A detailed example is provided in another [instruction](https://xiangmingcai.github.io/USERM/articles/instruction_interprateHighCoef.html). 
 
 There is no specific threshold for "bad" coef number or "good" coef number. Because the fluorescence intensity also matters and it varies in different settings and conjugated targets. However, this Coef Matrix provides an approach to compare the estimated spread between panels. So that users can choose a panel with less expected spread. 
+
+
+It is also possible to estimate the Spillover Spreading Matrix (SSM):
+``` r
+print(UsermObj$fluors[1:3])
+print(colnames(UsermObj$A))
+ssm = EstimateSSM(SSM_fluor = UsermObj$fluors[1:3],
+                  Userm = UsermObj,
+                  A = UsermObj$A,quiet = T)
+Vis_Mtx(mat = ssm,mincolor = "#B02B38",midcolor = "white", maxcolor = "#95ABDB",
+        max = 2,mid = 0,min = -4,legend_name = "ss",
+        title = "Spillover Spreading Matrix")
+```
+<p align="center">
+
+<img src="../man/figures/matrix_5.jpg" width="500/"/>
+
+</p>
+Of note, the EstimateSSM will do unmixing for stored SCCs one by one, which corresponds to fluors set with the SSM_fluor parameter. The A (Signature matrix) is used for unmixing and should be the complete signature matrix (including AF if available). Since we do not have SCC for AF, which is meaningless, the SSM_fluor parameter should not include AF.
+
 
 To estimate a Hotspot Matrix, only the signature matrix A is required:
 ``` r
@@ -316,44 +300,17 @@ Vis_Mtx(mat = Similarity_mtx,mincolor = "white",midcolor = "white", maxcolor = "
 
 </p>
 
-For similarity matrix, a number higher than 0.98 indicates that signals from the pair of fluorescence cannot be well separated. So, one of them needs to be replaced by other fluorescence.
-
-It is also possible to estimate the Spread Distance Matrix between two populations with estimated fluorescence intensities:
-``` r
-Spr1 = EstimateSpread(Userm = UsermObj,population_id = c("P1"))
-Spr2 = EstimateSpread(Userm = UsermObj,population_id = c("P2"))
-SpreadDistance_mtx = EstimateDistance(Spr1, Spr2)
-Vis_Mtx(mat = SpreadDistance_mtx,mincolor = "darkred",midcolor = "white", maxcolor = "white",max = 1.5,mid = 1,min = 0,title = "Spread Distance matrix")
-```
-<p align="center">
-
-<img src="../man/figures/matrix_4.jpg" width="500/"/>
-
-</p>
-
-For the Spread Distance matrix, a value < 1.0 indicates low resolution between these two cell populations. Of note, this results only accounts for spread, which originates from instrumental noise or deviations between actual cellular emission and the average fluorescence signatures. Also, it only holds for the given fluorescence intensities.
+For similarity matrix, a number higher than 0.98 indicates that signals from the pair of fluorescence cannot be well separated. In such case, one of them needs to be replaced by other fluorescence.
 
 ## 📚 Citation
 
-If you use this package in your research, please cite our paper and the package as:
+If you use this package in your research, please cite our paper:
 ```
-Xiangming Cai, Sara Garcia-Garcia, Nick Rohrbacker, Michaela Gianniou, Juan J. Garcia Vallejo. Manuscript in preparation. (to be update)
-
-Cai X (2025). _USERM: Unmixing Spread Estimation with Residual Model_. R package version
-  1.0.0,  <https://github.com/xiangmingcai/USERM>.
-  
-@Manual{,
-    title = {USERM: Unmixing Spread Estimation with Residual Model},
-    author = {Xiangming Cai},
-    year = {2025},
-    note = {R package version 1.0.0},
-    url = {https://github.com/xiangmingcai/USERM},
-  }
+Xiangming Cai, Sara Garcia-Garcia, Leo Kuhnen, Michaela Gianniou, Juan J. Garcia Vallejo. Unmixing Spread Estimation Based on Residual Model in Spectral Flow Cytometry. 
+bioRxiv 2026.01.27.701929; doi: https://doi.org/10.64898/2026.01.27.701929
 ```
 
+[^1]: Xiangming Cai, Sara Garcia-Garcia, Leo Kuhnen, Michaela Gianniou, Juan J. Garcia Vallejo. Unmixing Spread Estimation Based on Residual Model in Spectral Flow Cytometry. bioRxiv 2026.01.27.701929; doi:  10.64898/2026.01.27.701929
 
-
-
-[^1]: Xiangming Cai, Sara Garcia-Garcia, Leo Kuhnen, Michaela Gianniou, Juan J. Garcia Vallejo. Manuscript in preparation.
 
 [^2]: Mage PL, Konecny AJ, Mair F. Measurement and prediction of unmixing-dependent spreading in spectral flow cytometry panels. bioRxiv [Preprint]. 2025. doi: 10.1101/2025.04.17.649396.

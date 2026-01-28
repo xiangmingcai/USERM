@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">USERM</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,6 +34,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/instruction_basic.html">Basic Instruction</a></li>
+    <li><a class="dropdown-item" href="../articles/instruction_checkResObj.html">Check Res Obj Instruction</a></li>
     <li><a class="dropdown-item" href="../articles/instruction_customFCS.html">Use Custom SCC</a></li>
     <li><a class="dropdown-item" href="../articles/instruction_interprateHighCoef.html">Interprate Spread</a></li>
   </ul>
@@ -70,7 +71,7 @@
 <h2 id="instruction-for-userm-use-with-custom-sccs">instruction for USERM use with Custom SCCs<a class="anchor" aria-label="anchor" href="#instruction-for-userm-use-with-custom-sccs"></a>
 </h2>
 <p>Xiangming Cai</p>
-<p>2025-11-22</p>
+<p>2026-01-28</p>
 <div class="section level3">
 <h3 id="introduction">🔍 Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h3>
@@ -84,7 +85,8 @@ the USERM.</p>
 <p>In this instruction, we will show how to apply USERM on custom SCCs.
 We need to first extract signatures from SCCs and prepare res objects
 for each SCC. Then, we can easily predict with these custom SCCs (or
-together with built-in SCCs).</p>
+together with built-in SCCs). For Spillover Spreading Matrix (SSM)
+calculation, we also need to prepare ssm objects.</p>
 </div>
 <div class="section level3">
 <h3 id="step-0-load-packages-and-set-custom_dir">Step 0 📈 load packages and set custom_dir<a class="anchor" aria-label="anchor" href="#step-0-load-packages-and-set-custom_dir"></a>
@@ -103,15 +105,17 @@ together with built-in SCCs).</p>
 <span></span>
 <span><span class="va">custom_dir</span> <span class="op">=</span> <span class="st">"E:/MyFolder"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">custom_dir</span>,<span class="st">"/sig"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">custom_dir</span>,<span class="st">"/res"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">custom_dir</span>,<span class="st">"/res"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">custom_dir</span>,<span class="st">"/ssm"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>The custom_dir will store generated files, which is required for
-prediction.</p>
+prediction. Please change the custom_dir to your local output
+folder.</p>
 </div>
 <div class="section level3">
 <h3 id="step-1-prepare-signature">Step 1 📈 Prepare signature<a class="anchor" aria-label="anchor" href="#step-1-prepare-signature"></a>
 </h3>
 <p>We need to prepare signatures for each SCC seperately. The steps for
-extracting Autofluroescence (AF) are almost the same, unless
+Autofluroescence (AF) extraction are almost the same, unless
 specified.</p>
 <p>Normally, unstained sample is needed for AF extraction. However, you
 can extract AF from negative population in SCC if you do not have
@@ -120,8 +124,10 @@ unstained sample.</p>
 <h4 id="step-1-1-read-in-scc-fcs">step 1.1 read in scc fcs<a class="anchor" aria-label="anchor" href="#step-1-1-read-in-scc-fcs"></a>
 </h4>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">data</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/flowCore/man/read.FCS.html" class="external-link">read.FCS</a></span><span class="op">(</span><span class="st">"E:/Data/SCC_Cell_CD2_SB780 Run 1 20251024102726.fcs"</span><span class="op">)</span> <span class="co">#set the path to your SCC .fcs file</span></span>
-<span><span class="co"># data = read.FCS("E:/Data/unstained_1 Run 1 20251024100712.fcs") #this is for AF</span></span>
+<code class="sourceCode R"><span><span class="va">data_path</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"example_data"</span>, <span class="st">"SCC_Cell_CD2_SB780.fcs"</span>, package <span class="op">=</span> <span class="st">"USERM"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">data_path</span><span class="op">)</span></span>
+<span><span class="va">data</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/flowCore/man/read.FCS.html" class="external-link">read.FCS</a></span><span class="op">(</span><span class="va">data_path</span><span class="op">)</span> <span class="co">#set the path to your SCC .fcs file</span></span>
+<span><span class="co"># data = read.FCS(system.file("example_data", "unstained.fcs", package = "USERM")) #this is for AF</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data</span><span class="op">@</span><span class="va">parameters</span><span class="op">@</span><span class="va">data</span><span class="op">$</span><span class="va">desc</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data</span><span class="op">@</span><span class="va">parameters</span><span class="op">@</span><span class="va">data</span><span class="op">$</span><span class="va">name</span><span class="op">)</span><span class="op">)</span></span>
@@ -155,6 +161,10 @@ unstained sample.</p>
 <span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a><span class="dv">5</span>  <span class="fl">47614.96</span>  <span class="fl">11914.06</span> <span class="fl">47614.96</span> <span class="fl">15896.583</span> <span class="fl">17418.504</span>  <span class="fl">14257.81</span> <span class="fl">17418.504</span>         <span class="fl">1.561584</span>       <span class="fl">1.561584</span>        <span class="fl">1.0132446</span></span>
 <span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a><span class="dv">6</span>  <span class="fl">46072.35</span>  <span class="fl">13476.56</span> <span class="fl">46072.35</span> <span class="fl">22898.090</span> <span class="fl">27236.199</span>  <span class="fl">15625.00</span> <span class="fl">27236.199</span>         <span class="fl">2.038452</span>       <span class="fl">2.038452</span>        <span class="fl">0.8344116</span></span>
 <span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a>...</span></code></pre></div>
+<p>The detector ids are stored in the <a href="mailto:data@parameters" class="email">data@parameters</a><span class="citation">@data</span>.
+However, it can be on the desc slot or the name slot, depends on the
+flow instrument. You need to check it for your own FCS. Here we use desc
+slot.</p>
 </div>
 <div class="section level4">
 <h4 id="step-1-2-set-scc-fcs-info">step 1.2 set scc fcs info<a class="anchor" aria-label="anchor" href="#step-1-2-set-scc-fcs-info"></a>
@@ -176,14 +186,15 @@ elements in the name, which are separated by underscore.</p>
 <p><strong>The first element is “batch” element.</strong> The built-in
 SCCs use “SCC1”, “SCC2”, and so on to annotate SCC files acquired in
 distinct batches.You can use “SCCcustom” to distinguish custom SCCs and
-built-in SCCs. You can also use others that makes sense to you.</p>
+built-in SCCs. You can also use others that make sense to you.</p>
 <p><strong>The second element is “type” element.</strong> Now We only
-have “Cell” and “Bead”.</p>
+have “Cell” and “Bead”. You can set it as others like “PBMC” if that
+make sense to you.</p>
 <p><strong>The third element is “PrimaryName”.</strong> Normally we put
 target of the antibody here，e.g. CD2.</p>
 <p><strong>The last element is “SecondaryName”,</strong> Normally we put
 fluroescence of the antibody here, e.g. SB780.</p>
-<p>Please avoid using space or underscore in these elements.</p>
+<p>Please avoid using space or underscore within these elements.</p>
 </div>
 <div class="section level4">
 <h4 id="step-1-3-gate-positive-popualtion-and-negative-population">step 1.3 gate positive popualtion and negative population<a class="anchor" aria-label="anchor" href="#step-1-3-gate-positive-popualtion-and-negative-population"></a>
@@ -353,7 +364,7 @@ For AF:
 <span><span class="co">#For first SCC (that means you do not have a Custom_Sig_list yet)</span></span>
 <span><span class="va">Custom_Sig_list</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#If you already have a Custom_Sig_list</span></span>
-<span><span class="va">Custom_Sig_list</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">custom_dir</span>,<span class="st">"/sig/Custom_Sig_list.rds"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">Custom_Sig_list</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">custom_dir</span>,<span class="st">"sig"</span>,<span class="st">"Custom_Sig_list.rds"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 2. add signatures to Custom_Sig_list</span></span>
 <span><span class="va">Custom_Sig_list</span><span class="op">[[</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">Custom_Sig_list</span><span class="op">)</span><span class="op">+</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span> <span class="op">=</span> <span class="va">Sig</span></span>
@@ -363,15 +374,15 @@ For AF:
 <span><span class="co"># Custom_Sig_list[[length(Custom_Sig_list)]] = NULL</span></span>
 <span></span>
 <span><span class="co"># 3. save updated Custom_Sig_list</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">Custom_Sig_list</span>, file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">custom_dir</span>,<span class="st">"/sig/Custom_Sig_list.rds"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">Custom_Sig_list</span>, file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">custom_dir</span>,<span class="st">"sig"</span>,<span class="st">"Custom_Sig_list.rds"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>In the end, you should have a Custom_Sig_list containing elements
 like this:</p>
 <p align="center">
 </p>
 <p><img src="../reference/figures/custom_sig_list.jpg" width="500/"></p>
 
-<p>If you have more SCCs, you should have more elements in the
-Custom_Sig_list.</p>
+<p>If you have more SCCs, you can repeat these steps and add them all in
+the Custom_Sig_list.</p>
 </div>
 </div>
 <div class="section level3">
@@ -379,13 +390,13 @@ Custom_Sig_list.</p>
 </h3>
 <p>Now you should have at least one SCC signature and one AF
 signature(necessary for res obj preparation) in the Custom_Sig_list. If
-so, we can proceed to prpare res obj for each fluorescence, including
+so, we can proceed to prepare res obj for each fluorescence, including
 the AF.</p>
 <div class="section level4">
 <h4 id="step-2-1-read-custom_sig_list-and-prepare-sig_mtx">step 2.1 read Custom_Sig_list and prepare Sig_mtx<a class="anchor" aria-label="anchor" href="#step-2-1-read-custom_sig_list-and-prepare-sig_mtx"></a>
 </h4>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">Custom_Sig_list</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">custom_dir</span>,<span class="st">"/sig/Custom_Sig_list.rds"</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">Custom_Sig_list</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">custom_dir</span>,<span class="st">"sig"</span>,<span class="st">"Custom_Sig_list.rds"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">Sig_info</span> <span class="op">=</span> <span class="fu"><a href="../reference/querySig.html">querySig</a></span><span class="op">(</span>Sig_list <span class="op">=</span> <span class="va">Custom_Sig_list</span><span class="op">)</span></span>
 <span><span class="va">fluors_selected</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">Sig_info</span><span class="op">$</span><span class="va">id</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
@@ -401,8 +412,10 @@ later.</p>
 <h4 id="step-2-2-read-scc-fcs">step 2.2 read scc fcs<a class="anchor" aria-label="anchor" href="#step-2-2-read-scc-fcs"></a>
 </h4>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">data</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/flowCore/man/read.FCS.html" class="external-link">read.FCS</a></span><span class="op">(</span><span class="st">"E:/Data/SCC_Cell_CD2_SB780 Run 1 20251024102726.fcs"</span><span class="op">)</span></span>
-<span><span class="co"># data = read.FCS("E:/Data/unstained_1 Run 1 20251024100712.fcs") #For AF</span></span>
+<code class="sourceCode R"><span><span class="va">data_path</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"example_data"</span>, <span class="st">"SCC_Cell_CD2_SB780.fcs"</span>, package <span class="op">=</span> <span class="st">"USERM"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">data_path</span><span class="op">)</span></span>
+<span><span class="va">data</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/flowCore/man/read.FCS.html" class="external-link">read.FCS</a></span><span class="op">(</span><span class="va">data_path</span><span class="op">)</span> <span class="co">#set the path to your SCC .fcs file</span></span>
+<span><span class="co"># data = read.FCS(system.file("example_data", "unstained.fcs", package = "USERM")) #this is for AF</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data</span><span class="op">@</span><span class="va">parameters</span><span class="op">@</span><span class="va">data</span><span class="op">$</span><span class="va">desc</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data</span><span class="op">@</span><span class="va">parameters</span><span class="op">@</span><span class="va">data</span><span class="op">$</span><span class="va">name</span><span class="op">)</span><span class="op">)</span></span>
@@ -540,13 +553,13 @@ first.</p>
 <span><span class="va">data</span> <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/sample_n.html" class="external-link">sample_n</a></span><span class="op">(</span><span class="va">data</span>, <span class="fl">20000</span><span class="op">)</span></span>
 <span><span class="va">gate_normal</span><span class="op">&lt;-</span><span class="fu"><a href="https://rdrr.io/pkg/GateData/man/PolygonGating.html" class="external-link">PolygonGating</a></span><span class="op">(</span>df<span class="op">=</span><span class="va">data</span>, x_col<span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">Sig_mtx</span><span class="op">)</span><span class="op">[</span><span class="va">idx_target_fluor</span><span class="op">]</span>,</span>
 <span>                           y_col<span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">Sig_mtx</span><span class="op">)</span><span class="op">[</span><span class="va">idx_AF_fluor</span><span class="op">]</span>,</span>
-<span>                           feature_col<span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">Sig_mtx</span><span class="op">)</span><span class="op">[</span><span class="va">idx_target_fluor</span><span class="op">]</span>,</span>
+<span>                           feature_col<span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">Sig_mtx</span><span class="op">)</span><span class="op">[</span><span class="va">idx_target_fluor</span><span class="op">]</span>,title_text <span class="op">=</span> <span class="st">"gate stable positive population"</span>,</span>
 <span>                           parentgate_col<span class="op">=</span> <span class="st">"gate0"</span>, newgate_col<span class="op">=</span> <span class="st">"gate_normal"</span>,canvas_width<span class="op">=</span><span class="fl">800</span>, canvas_height<span class="op">=</span><span class="fl">400</span><span class="op">)</span></span>
 <span><span class="va">data</span> <span class="op">=</span> <span class="va">data_backup</span></span>
 <span><span class="va">data</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/GateData/man/GateDecider.html" class="external-link">GateDecider</a></span><span class="op">(</span>gate <span class="op">=</span> <span class="va">gate_normal</span>, df <span class="op">=</span> <span class="va">data</span><span class="op">)</span></span>
 <span><span class="va">data</span> <span class="op">=</span> <span class="va">data</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">gate_normal</span>,<span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">Sig_mtx</span><span class="op">)</span><span class="op">]</span></span>
 <span></span>
-<span><span class="co">#you may save gate_normal is you want</span></span>
+<span><span class="co">#you may save gate_normal if you want</span></span>
 <span><span class="co"># saveRDS(list(gate_normal), file = paste0(custom_dir,"/",save_suf,"_gatelist.rds"))</span></span>
 <span><span class="co"># saveRDS(c("gate_normal"), file = paste0(custom_dir,"/",save_suf,"_gatenames.rds"))</span></span></code></pre></div>
 <p align="center">
@@ -579,7 +592,7 @@ negative populaiton:</p>
 <span>          <span class="fu"><a href="https://rdrr.io/r/grid/grid.text.html" class="external-link">grid.text</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"%.1f"</span>, <span class="va">ResObj</span><span class="op">$</span><span class="va">slopMtx</span><span class="op">[</span><span class="va">i</span>, <span class="va">j</span><span class="op">]</span><span class="op">)</span>, <span class="va">x</span>, <span class="va">y</span>, gp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/grid/gpar.html" class="external-link">gpar</a></span><span class="op">(</span>fontsize <span class="op">=</span> <span class="fl">6</span><span class="op">)</span><span class="op">)</span></span>
 <span>        <span class="op">}</span>,column_title <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">Sig_mtx</span><span class="op">)</span><span class="op">[</span><span class="va">idx_target_fluor</span><span class="op">]</span>,name <span class="op">=</span> <span class="st">"beta"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">ResObj</span>, file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">custom_dir</span>,<span class="st">"/res"</span>,<span class="st">"/ResObj_"</span>,<span class="va">save_suf</span>,<span class="st">".rds"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">ResObj</span>, file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">custom_dir</span>,<span class="st">"res"</span>,<span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"ResObj_"</span>,<span class="va">save_suf</span>,<span class="st">".rds"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a><span class="sc">&gt;</span> ResObj <span class="ot">=</span> <span class="fu">SlopEstimation</span>(<span class="at">Res =</span> ResObj, <span class="at">bin_num =</span> <span class="dv">30</span>)</span>
 <span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>calculating cov matrix...</span>
 <span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>(<span class="sc">-</span>) [<span class="sc">==</span><span class="er">=============================</span>] <span class="dv">100</span>% [Elapsed time<span class="sc">:</span> <span class="dv">00</span><span class="sc">:</span><span class="dv">00</span><span class="sc">:</span><span class="dv">09</span> <span class="sc">||</span> Estimated time remaining<span class="sc">:</span>  0s]</span>
@@ -599,11 +612,186 @@ prediction.</p>
 </p>
 <p><img src="../reference/figures/custom_res_detail.jpg" width="500/"></p>
 
+<p>If you have more SCCs, you can repeat these steps and save all the
+res object.</p>
 </div>
 </div>
 <div class="section level3">
-<h3 id="step-3-use-custom-res-obj-and-built-in-res-obj-together-to-make-spread-prediction">Step 3 Use custom res obj and built-in res obj together to make
-spread prediction<a class="anchor" aria-label="anchor" href="#step-3-use-custom-res-obj-and-built-in-res-obj-together-to-make-spread-prediction"></a>
+<h3 id="step-3-prepare-ssm-obj">Step 3 📈 Prepare ssm obj<a class="anchor" aria-label="anchor" href="#step-3-prepare-ssm-obj"></a>
+</h3>
+<p>Now we can prepare ssm objects for SSM calculation. If you do not
+care about SSM, you may skip this part. We do not prepare for AF, which
+seems meaningless.</p>
+<div class="section level4">
+<h4 id="step-3-1-read-in-scc-fcs">step 3.1 read in scc fcs<a class="anchor" aria-label="anchor" href="#step-3-1-read-in-scc-fcs"></a>
+</h4>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">data_path</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"example_data"</span>, <span class="st">"SCC_Cell_CD2_SB780.fcs"</span>, package <span class="op">=</span> <span class="st">"USERM"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">data_path</span><span class="op">)</span></span>
+<span><span class="va">data</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/flowCore/man/read.FCS.html" class="external-link">read.FCS</a></span><span class="op">(</span><span class="va">data_path</span><span class="op">)</span> <span class="co">#set the path to your SCC .fcs file</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data</span><span class="op">@</span><span class="va">parameters</span><span class="op">@</span><span class="va">data</span><span class="op">$</span><span class="va">desc</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data</span><span class="op">@</span><span class="va">parameters</span><span class="op">@</span><span class="va">data</span><span class="op">$</span><span class="va">name</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">desc</span> <span class="op">=</span> <span class="va">data</span><span class="op">@</span><span class="va">parameters</span><span class="op">@</span><span class="va">data</span><span class="op">$</span><span class="va">desc</span> <span class="co"># "desc" or "name" are used for different insruments. Ues the one with correct detector names.</span></span>
+<span></span>
+<span><span class="va">data</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/Biobase/man/exprs.html" class="external-link">exprs</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
+<span><span class="va">data</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">=</span> <span class="va">desc</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">print</span>(<span class="fu">head</span>(data<span class="sc">@</span>parameters<span class="sc">@</span>data<span class="sc">$</span>desc))</span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a>       <span class="sc">$</span>P1S        <span class="sc">$</span>P2S        <span class="sc">$</span>P3S        <span class="sc">$</span>P4S        <span class="sc">$</span>P5S        <span class="sc">$</span>P6S </span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a>     <span class="st">"Time"</span>  <span class="st">"Run Time"</span>  <span class="st">"Event ID"</span> <span class="st">"488 FSC-H"</span> <span class="st">"488 FSC-A"</span> <span class="st">"488 FSC-W"</span> </span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">print</span>(<span class="fu">head</span>(data<span class="sc">@</span>parameters<span class="sc">@</span>data<span class="sc">$</span>name))</span>
+<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a>      <span class="sc">$</span>P1N       <span class="sc">$</span>P2N       <span class="sc">$</span>P3N       <span class="sc">$</span>P4N       <span class="sc">$</span>P5N       <span class="sc">$</span>P6N </span>
+<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a>    <span class="st">"Time"</span> <span class="st">"Run Time"</span> <span class="st">"Event ID"</span>  <span class="st">"FSC51-H"</span>  <span class="st">"FSC51-A"</span>  <span class="st">"FSC51-W"</span> </span>
+<span id="cb23-7"><a href="#cb23-7" tabindex="-1"></a></span>
+<span id="cb23-8"><a href="#cb23-8" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">head</span>(data)</span>
+<span id="cb23-9"><a href="#cb23-9" tabindex="-1"></a>  Time Run Time Event ID <span class="dv">488</span> FSC<span class="sc">-</span>H <span class="dv">488</span> FSC<span class="sc">-</span>A <span class="dv">488</span> FSC<span class="sc">-</span>W  <span class="dv">488</span> FSC <span class="dv">488</span> SSC<span class="sc">-</span>H <span class="dv">488</span> SSC<span class="sc">-</span>A <span class="dv">488</span> SSC<span class="sc">-</span>W  <span class="dv">488</span> SSC <span class="dv">488</span> FSC Polar<span class="sc">-</span>H</span>
+<span id="cb23-10"><a href="#cb23-10" tabindex="-1"></a><span class="dv">1</span>  <span class="dv">966</span>      <span class="dv">966</span>        <span class="dv">1</span>  <span class="fl">11053.84</span>  <span class="fl">11367.57</span>  <span class="fl">13671.88</span> <span class="fl">11367.57</span>  <span class="fl">26975.94</span>  <span class="fl">27930.18</span>  <span class="fl">13671.88</span> <span class="fl">27930.18</span>        <span class="fl">12814.00</span></span>
+<span id="cb23-11"><a href="#cb23-11" tabindex="-1"></a><span class="dv">2</span>  <span class="dv">991</span>      <span class="dv">991</span>        <span class="dv">2</span>  <span class="fl">46370.00</span>  <span class="fl">53884.65</span>  <span class="fl">15234.38</span> <span class="fl">53884.65</span>  <span class="fl">92353.13</span>  <span class="fl">99999.98</span>  <span class="fl">16210.94</span> <span class="fl">99999.98</span>        <span class="fl">54518.63</span></span>
+<span id="cb23-12"><a href="#cb23-12" tabindex="-1"></a><span class="dv">3</span> <span class="dv">1066</span>     <span class="dv">1066</span>        <span class="dv">3</span>  <span class="fl">53632.18</span>  <span class="fl">60693.39</span>  <span class="fl">15039.06</span> <span class="fl">60693.39</span>  <span class="fl">38315.37</span>  <span class="fl">43835.29</span>  <span class="fl">15039.06</span> <span class="fl">43835.29</span>        <span class="fl">62066.83</span></span>
+<span id="cb23-13"><a href="#cb23-13" tabindex="-1"></a><span class="dv">4</span> <span class="dv">1135</span>     <span class="dv">1135</span>        <span class="dv">4</span>  <span class="fl">56737.39</span>  <span class="fl">64002.36</span>  <span class="fl">15039.06</span> <span class="fl">64002.36</span>  <span class="fl">37044.19</span>  <span class="fl">43117.40</span>  <span class="fl">15429.69</span> <span class="fl">43117.40</span>        <span class="fl">66313.27</span></span>
+<span id="cb23-14"><a href="#cb23-14" tabindex="-1"></a><span class="dv">5</span> <span class="dv">1233</span>     <span class="dv">1233</span>        <span class="dv">5</span>  <span class="fl">31609.00</span>  <span class="fl">36513.11</span>  <span class="fl">15429.69</span> <span class="fl">36513.11</span>  <span class="fl">40273.66</span>  <span class="fl">46527.43</span>  <span class="fl">15039.06</span> <span class="fl">46527.43</span>        <span class="fl">37028.07</span></span>
+<span id="cb23-15"><a href="#cb23-15" tabindex="-1"></a><span class="dv">6</span> <span class="dv">1274</span>     <span class="dv">1274</span>        <span class="dv">6</span>  <span class="fl">21817.04</span>  <span class="fl">26400.30</span>  <span class="fl">16015.62</span> <span class="fl">26400.30</span>  <span class="fl">55891.99</span>  <span class="fl">66402.58</span>  <span class="fl">15625.00</span> <span class="fl">66402.58</span>        <span class="fl">24883.68</span></span>
+<span id="cb23-16"><a href="#cb23-16" tabindex="-1"></a>...</span>
+<span id="cb23-17"><a href="#cb23-17" tabindex="-1"></a>  <span class="dv">405</span> FSC<span class="sc">-</span>A <span class="dv">405</span> FSC<span class="sc">-</span>W  <span class="dv">405</span> FSC <span class="dv">405</span> SSC<span class="sc">-</span>H <span class="dv">405</span> SSC<span class="sc">-</span>A <span class="dv">405</span> SSC<span class="sc">-</span>W   <span class="dv">405</span> SSC 349nm <span class="sc">-</span> <span class="dv">387</span><span class="sc">/</span><span class="dv">11</span><span class="sc">-</span>A 349nm <span class="sc">-</span> <span class="dv">387</span><span class="sc">/</span><span class="dv">11</span> 349nm <span class="sc">-</span> <span class="dv">420</span><span class="sc">/</span><span class="dv">10</span><span class="sc">-</span>A</span>
+<span id="cb23-18"><a href="#cb23-18" tabindex="-1"></a><span class="dv">1</span>  <span class="fl">17551.05</span>  <span class="fl">13085.94</span> <span class="fl">17551.05</span>  <span class="fl">9475.255</span>  <span class="fl">9475.971</span>  <span class="fl">13476.56</span>  <span class="fl">9475.971</span>         <span class="fl">2.872925</span>       <span class="fl">2.872925</span>        <span class="fl">6.1988525</span></span>
+<span id="cb23-19"><a href="#cb23-19" tabindex="-1"></a><span class="dv">2</span>  <span class="fl">57257.59</span>  <span class="fl">13671.88</span> <span class="fl">57257.59</span> <span class="fl">45441.043</span> <span class="fl">53445.719</span>  <span class="fl">15234.38</span> <span class="fl">53445.719</span>         <span class="fl">4.613342</span>       <span class="fl">4.613342</span>        <span class="fl">2.5987549</span></span>
+<span id="cb23-20"><a href="#cb23-20" tabindex="-1"></a><span class="dv">3</span>  <span class="fl">37115.38</span>  <span class="fl">13085.94</span> <span class="fl">37115.38</span> <span class="fl">14217.615</span> <span class="fl">15710.759</span>  <span class="fl">14648.44</span> <span class="fl">15710.759</span>         <span class="fl">2.360291</span>       <span class="fl">2.360291</span>        <span class="fl">8.5353394</span></span>
+<span id="cb23-21"><a href="#cb23-21" tabindex="-1"></a><span class="dv">4</span>  <span class="fl">46662.83</span>  <span class="fl">12500.00</span> <span class="fl">46662.83</span> <span class="fl">16527.271</span> <span class="fl">18565.000</span>  <span class="fl">14843.75</span> <span class="fl">18565.000</span>         <span class="fl">6.043884</span>       <span class="fl">6.043884</span>        <span class="fl">0.7271729</span></span>
+<span id="cb23-22"><a href="#cb23-22" tabindex="-1"></a><span class="dv">5</span>  <span class="fl">47614.96</span>  <span class="fl">11914.06</span> <span class="fl">47614.96</span> <span class="fl">15896.583</span> <span class="fl">17418.504</span>  <span class="fl">14257.81</span> <span class="fl">17418.504</span>         <span class="fl">1.561584</span>       <span class="fl">1.561584</span>        <span class="fl">1.0132446</span></span>
+<span id="cb23-23"><a href="#cb23-23" tabindex="-1"></a><span class="dv">6</span>  <span class="fl">46072.35</span>  <span class="fl">13476.56</span> <span class="fl">46072.35</span> <span class="fl">22898.090</span> <span class="fl">27236.199</span>  <span class="fl">15625.00</span> <span class="fl">27236.199</span>         <span class="fl">2.038452</span>       <span class="fl">2.038452</span>        <span class="fl">0.8344116</span></span>
+<span id="cb23-24"><a href="#cb23-24" tabindex="-1"></a>...</span></code></pre></div>
+<p>The detector ids are stored in the <a href="mailto:data@parameters" class="email">data@parameters</a><span class="citation">@data</span>.
+However, it can be on the desc slot or the name slot, depends on the
+flow instrument. You need to check it for your own FCS. Here we use desc
+slot.</p>
+</div>
+<div class="section level4">
+<h4 id="step-3-2-set-scc-fcs-info">step 3.2 set scc fcs info<a class="anchor" aria-label="anchor" href="#step-3-2-set-scc-fcs-info"></a>
+</h4>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span></span>
+<span><span class="va">peak_channel</span> <span class="op">=</span> <span class="st">'405nm - 770/LP-A'</span> <span class="co">#</span></span>
+<span><span class="va">save_suf</span> <span class="op">=</span> <span class="st">"SCCcustom_Cell_CD2_SB780"</span></span>
+<span><span class="va">PrimaryName</span> <span class="op">=</span> <span class="st">"CD2"</span></span>
+<span><span class="va">SecondaryName</span> <span class="op">=</span> <span class="st">"SB780"</span></span></code></pre></div>
+<p>You may use public resource (e.g. fluorofinder) to find the peak
+channel of your SCC. Please keep the save_suf teh same as the fluor’s
+name used in signature extraction.</p>
+</div>
+<div class="section level4">
+<h4 id="step-3-3-gate-positive-popualtion-and-negative-population">step 3.3 gate positive popualtion and negative population<a class="anchor" aria-label="anchor" href="#step-3-3-gate-positive-popualtion-and-negative-population"></a>
+</h4>
+<p>In this step, we need to find positive and negative populations. It
+feels similar to what you did for signature extraction. However, in
+signature extraction, you may want to gate highest expressed populaiton
+for better representation. While for SSM object, these gated negative
+and positive populations will be unmixed before SSM calculation. So, you
+should gate the the complete and stable population (avoid outlier) to
+stable SSM calculation.</p>
+<p>Still, we show how to gate a subset population with the GateData</p>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># 1. sample cells.</span></span>
+<span><span class="co">#You may modify code here to sample specific set for rare markers.</span></span>
+<span><span class="va">data</span><span class="op">$</span><span class="va">gate0</span> <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="va">data</span> <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/sample_n.html" class="external-link">sample_n</a></span><span class="op">(</span><span class="va">data</span>, <span class="fl">20000</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 2. gate singlets if need</span></span>
+<span><span class="co"># You can change the FSC and SSC names for specific instrument.</span></span>
+<span><span class="co"># use colnames(data) to find available paramters</span></span>
+<span><span class="co"># colnames(data)</span></span>
+<span><span class="va">gate1</span><span class="op">&lt;-</span><span class="fu"><a href="https://rdrr.io/pkg/GateData/man/PolygonGating.html" class="external-link">PolygonGating</a></span><span class="op">(</span>df<span class="op">=</span><span class="va">data</span>, x_col<span class="op">=</span> <span class="st">"488 FSC-A"</span>, y_col<span class="op">=</span> <span class="st">"488 FSC-H"</span>, feature_col<span class="op">=</span> <span class="st">"488 FSC-A"</span>,</span>
+<span>                     parentgate_col<span class="op">=</span> <span class="st">"gate0"</span>, newgate_col<span class="op">=</span> <span class="st">"gate1"</span>,canvas_width<span class="op">=</span><span class="fl">800</span>, canvas_height<span class="op">=</span><span class="fl">400</span>,</span>
+<span>                     title_text <span class="op">=</span> <span class="st">"Gate singlets"</span><span class="op">)</span></span>
+<span><span class="va">data</span> <span class="op">&lt;-</span><span class="fu"><a href="https://rdrr.io/pkg/GateData/man/GateDecider.html" class="external-link">GateDecider</a></span><span class="op">(</span>gate <span class="op">=</span> <span class="va">gate1</span>, df <span class="op">=</span> <span class="va">data</span><span class="op">)</span></span>
+<span><span class="va">gate2</span><span class="op">&lt;-</span><span class="fu"><a href="https://rdrr.io/pkg/GateData/man/PolygonGating.html" class="external-link">PolygonGating</a></span><span class="op">(</span>df<span class="op">=</span><span class="va">data</span>, x_col<span class="op">=</span> <span class="st">"488 SSC-A"</span>, y_col<span class="op">=</span> <span class="st">"488 SSC-H"</span>, feature_col<span class="op">=</span> <span class="st">"488 SSC-A"</span>,</span>
+<span>                     parentgate_col<span class="op">=</span> <span class="st">"gate1"</span>, newgate_col<span class="op">=</span> <span class="st">"gate2"</span>,canvas_width<span class="op">=</span><span class="fl">800</span>, canvas_height<span class="op">=</span><span class="fl">400</span>,</span>
+<span>                     title_text <span class="op">=</span> <span class="st">"Gate singlets"</span><span class="op">)</span></span>
+<span><span class="va">data</span> <span class="op">&lt;-</span><span class="fu"><a href="https://rdrr.io/pkg/GateData/man/GateDecider.html" class="external-link">GateDecider</a></span><span class="op">(</span>gate <span class="op">=</span> <span class="va">gate2</span>, df <span class="op">=</span> <span class="va">data</span><span class="op">)</span></span></code></pre></div>
+<p align="center">
+</p>
+<p><img src="../reference/figures/custom_sig_gatesiglets_1.jpg" width="500/"></p>
+
+<p align="center">
+</p>
+<p><img src="../reference/figures/custom_sig_gatesiglets_2.jpg" width="500/"></p>
+
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># 3. gate target population (e.g. lymphocytes)</span></span>
+<span><span class="va">gate3</span><span class="op">&lt;-</span><span class="fu"><a href="https://rdrr.io/pkg/GateData/man/PolygonGating.html" class="external-link">PolygonGating</a></span><span class="op">(</span>df<span class="op">=</span><span class="va">data</span>, x_col<span class="op">=</span> <span class="st">"488 SSC-A"</span>, y_col<span class="op">=</span> <span class="st">"488 FSC-A"</span>, feature_col<span class="op">=</span> <span class="st">"488 SSC-A"</span>,</span>
+<span>                     parentgate_col<span class="op">=</span> <span class="st">"gate2"</span>, newgate_col<span class="op">=</span> <span class="st">"gate3"</span>,canvas_width<span class="op">=</span><span class="fl">800</span>, canvas_height<span class="op">=</span><span class="fl">500</span>,</span>
+<span>                     title_text <span class="op">=</span> <span class="st">"Gate target population"</span><span class="op">)</span></span>
+<span><span class="va">data</span> <span class="op">&lt;-</span><span class="fu"><a href="https://rdrr.io/pkg/GateData/man/GateDecider.html" class="external-link">GateDecider</a></span><span class="op">(</span>gate <span class="op">=</span> <span class="va">gate3</span>, df <span class="op">=</span> <span class="va">data</span><span class="op">)</span></span></code></pre></div>
+<p align="center">
+</p>
+<p><img src="../reference/figures/custom_sig_gatesiglets_3.jpg" width="500/"></p>
+
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># 4. gate positive and negative populations.</span></span>
+<span><span class="va">data</span> <span class="op">=</span> <span class="va">data</span><span class="op">[</span><span class="op">(</span><span class="va">data</span><span class="op">[</span>,<span class="va">peak_channel</span><span class="op">]</span> <span class="op">&lt;</span> <span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">data</span><span class="op">[</span>,<span class="va">peak_channel</span><span class="op">]</span>,<span class="fl">0.990</span><span class="op">)</span><span class="op">)</span>,<span class="op">]</span></span>
+<span><span class="va">data</span> <span class="op">=</span> <span class="va">data</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">gate3</span>,<span class="op">]</span></span>
+<span><span class="va">gate_pos</span><span class="op">&lt;-</span><span class="fu"><a href="https://rdrr.io/pkg/GateData/man/PolygonGating.html" class="external-link">PolygonGating</a></span><span class="op">(</span>df<span class="op">=</span><span class="va">data</span>, x_col<span class="op">=</span> <span class="va">peak_channel</span>, y_col<span class="op">=</span> <span class="st">"488 SSC-A"</span>, feature_col<span class="op">=</span> <span class="st">"488 SSC-A"</span>,</span>
+<span>                        parentgate_col<span class="op">=</span> <span class="st">"gate3"</span>, newgate_col<span class="op">=</span> <span class="st">"gate_pos"</span>,canvas_width<span class="op">=</span><span class="fl">800</span>, canvas_height<span class="op">=</span><span class="fl">400</span>,</span>
+<span>                        title_text <span class="op">=</span> <span class="st">"Gate positive population"</span><span class="op">)</span></span>
+<span><span class="va">data</span> <span class="op">&lt;-</span><span class="fu"><a href="https://rdrr.io/pkg/GateData/man/GateDecider.html" class="external-link">GateDecider</a></span><span class="op">(</span>gate <span class="op">=</span> <span class="va">gate_pos</span>, df <span class="op">=</span> <span class="va">data</span><span class="op">)</span></span>
+<span><span class="va">gate_neg</span><span class="op">&lt;-</span><span class="fu"><a href="https://rdrr.io/pkg/GateData/man/PolygonGating.html" class="external-link">PolygonGating</a></span><span class="op">(</span>df<span class="op">=</span><span class="va">data</span>, x_col<span class="op">=</span> <span class="va">peak_channel</span>, y_col<span class="op">=</span> <span class="st">"488 SSC-A"</span>, feature_col<span class="op">=</span> <span class="st">"488 SSC-A"</span>,</span>
+<span>                        parentgate_col<span class="op">=</span> <span class="st">"gate3"</span>, newgate_col<span class="op">=</span> <span class="st">"gate_neg"</span>,canvas_width<span class="op">=</span><span class="fl">800</span>, canvas_height<span class="op">=</span><span class="fl">400</span>,</span>
+<span>                        title_text <span class="op">=</span> <span class="st">"Gate negative population"</span><span class="op">)</span></span>
+<span><span class="va">data</span> <span class="op">&lt;-</span><span class="fu"><a href="https://rdrr.io/pkg/GateData/man/GateDecider.html" class="external-link">GateDecider</a></span><span class="op">(</span>gate <span class="op">=</span> <span class="va">gate_neg</span>, df <span class="op">=</span> <span class="va">data</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">gate_pos</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">gate_neg</span><span class="op">)</span></span>
+<span><span class="va">data_pos</span> <span class="op">=</span> <span class="va">data</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">gate_pos</span>,<span class="op">]</span></span>
+<span><span class="va">data_neg</span> <span class="op">=</span> <span class="va">data</span><span class="op">[</span><span class="va">data</span><span class="op">$</span><span class="va">gate_neg</span>,<span class="op">]</span></span>
+<span></span>
+<span><span class="co"># #you may save the gates if needed.</span></span>
+<span><span class="co"># saveRDS(list(gate1,gate2,gate3,gate_pos,gate_neg), file = paste0(custom_dir,"/",save_suf,"_gatelist.rds"))</span></span>
+<span><span class="co"># saveRDS(c("gate1","gate2","gate3","gate_pos","gate_neg"), file = paste0(custom_dir,"/",save_suf,"_gatenames.rds"))</span></span></code></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">table</span>(data<span class="sc">$</span>gate_pos)</span>
+<span id="cb28-2"><a href="#cb28-2" tabindex="-1"></a></span>
+<span id="cb28-3"><a href="#cb28-3" tabindex="-1"></a><span class="cn">FALSE</span>  <span class="cn">TRUE</span> </span>
+<span id="cb28-4"><a href="#cb28-4" tabindex="-1"></a><span class="dv">11669</span>   <span class="dv">361</span> </span>
+<span id="cb28-5"><a href="#cb28-5" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">table</span>(data<span class="sc">$</span>gate_neg)</span>
+<span id="cb28-6"><a href="#cb28-6" tabindex="-1"></a></span>
+<span id="cb28-7"><a href="#cb28-7" tabindex="-1"></a><span class="cn">FALSE</span>  <span class="cn">TRUE</span> </span>
+<span id="cb28-8"><a href="#cb28-8" tabindex="-1"></a> <span class="dv">6202</span>  <span class="dv">5828</span> </span></code></pre></div>
+<p align="center">
+</p>
+<p><img src="../reference/figures/custom_ssm_gatesiglets_4.jpg" width="500/"></p>
+
+<p align="center">
+</p>
+<p><img src="../reference/figures/custom_ssm_gatesiglets_5.jpg" width="500/"></p>
+
+</div>
+<div class="section level4">
+<h4 id="step-3-4-extract-ssm-object">step 3.4 extract ssm object<a class="anchor" aria-label="anchor" href="#step-3-4-extract-ssm-object"></a>
+</h4>
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co">#Select detectors. Please select only the detectors for unmixing</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
+<span><span class="va">cols</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span>from<span class="op">=</span><span class="fl">28</span>, to<span class="op">=</span><span class="fl">128</span>, by<span class="op">=</span><span class="fl">2</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">cols</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">SSMObj</span> <span class="op">=</span> <span class="fu"><a href="../reference/ExtractSSM.html">ExtractSSM</a></span><span class="op">(</span>df_pos <span class="op">=</span> <span class="va">data_pos</span>,df_neg <span class="op">=</span> <span class="va">data_neg</span>,</span>
+<span>                      cols <span class="op">=</span> <span class="va">cols</span>,method <span class="op">=</span> <span class="st">"median"</span>,</span>
+<span>                      PrimaryName <span class="op">=</span> <span class="va">PrimaryName</span>,</span>
+<span>                      SecondaryName <span class="op">=</span> <span class="va">SecondaryName</span>,</span>
+<span>                      id <span class="op">=</span> <span class="va">save_suf</span>,</span>
+<span>                      instrument <span class="op">=</span> <span class="st">"Xenith"</span>,</span>
+<span>                      Source <span class="op">=</span> <span class="st">"YourName"</span>,</span>
+<span>                      Note <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">SSMObj</span>, file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">custom_dir</span>,<span class="st">"ssm"</span>,<span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"SSMObj_"</span>,<span class="va">save_suf</span>,<span class="st">".rds"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">save_suf</span><span class="op">)</span></span></code></pre></div>
+<p>If you have more SCCs, you can repeat these steps and save all the
+ssm object. Normally we do not need to do this for AF.</p>
+</div>
+</div>
+<div class="section level3">
+<h3 id="step-4-use-custom-and-built-in-data-together-to-make-spread-prediction">Step 4 Use custom and built-in data together to make spread
+prediction<a class="anchor" aria-label="anchor" href="#step-4-use-custom-and-built-in-data-together-to-make-spread-prediction"></a>
 </h3>
 <p>Once we have res obj for all custom SCC ready, we can make
 prediction!</p>
@@ -614,29 +802,31 @@ first <a href="https://xiangmingcai.github.io/USERM/articles/instruction_basic.h
 you only use custom SCC, just ignore the code for built-in SCC.</p>
 <p>Note: the custom_dir contains following files now:</p>
 <pre><code>MyFolder/
+├── sig/                  
+│   └── Custom_Sig_list.rds
 ├── res/                  
 │   ├── ResObj_SCCcustom_Cell_AF_AF.rds          
 │   └── ResObj_SCCcustom_Cell_CD2_SB780.rds
-├── sig/                  
-│   └── Custom_Sig_list.rds</code></pre>
+├── ssm/                  
+│   └── SSMObj_SCCcustom_Cell_CD2_SB780.rds</code></pre>
 <p>Remember to keep these files, so that you do not need to generate
 them again next time!</p>
 <div class="section level4">
 <h4 id="step-3-1-check-available-custom-fluorescence">step 3.1 check available custom fluorescence<a class="anchor" aria-label="anchor" href="#step-3-1-check-available-custom-fluorescence"></a>
 </h4>
 <p>First, read in the Custom_Sig_list.</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Custom_Sig_list</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">custom_dir</span>,<span class="st">"/sig/Custom_Sig_list.rds"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">Custom_Sig_info</span> <span class="op">=</span> <span class="fu"><a href="../reference/querySig.html">querySig</a></span><span class="op">(</span>Sig_list <span class="op">=</span> <span class="va">Custom_Sig_list</span><span class="op">)</span></span>
 <span><span class="va">fluor_to_check</span> <span class="op">=</span> <span class="va">Custom_Sig_info</span><span class="op">$</span><span class="va">id</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">fluor_to_check</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/checkSig_linePlot.html">checkSig_linePlot</a></span><span class="op">(</span>id <span class="op">=</span> <span class="va">fluor_to_check</span>, Sig_list <span class="op">=</span> <span class="va">Custom_Sig_list</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">print</span>(fluor_to_check)</span>
-<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a>[<span class="dv">1</span>] <span class="st">"SCCcustom_Cell_CD2_SB780"</span></span></code></pre></div>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">print</span>(fluor_to_check)</span>
+<span id="cb32-2"><a href="#cb32-2" tabindex="-1"></a>[<span class="dv">1</span>] <span class="st">"SCCcustom_Cell_CD2_SB780"</span></span></code></pre></div>
 <p>You can check the signature of fluorescence of interest.</p>
 <p>You can also check the res obj of interested fluorescence.</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">#get Residual Obj</span></span>
 <span><span class="va">ResObj</span> <span class="op">=</span> <span class="fu"><a href="../reference/getRes.html">getRes</a></span><span class="op">(</span>id <span class="op">=</span> <span class="va">fluor_to_check</span>,custom_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">custom_dir</span>,<span class="st">"/res"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
@@ -652,32 +842,32 @@ them again next time!</p>
 <div class="section level4">
 <h4 id="step-3-2-select-fluors-and-create-usermobj">step 3.2 Select fluors and create UsermObj<a class="anchor" aria-label="anchor" href="#step-3-2-select-fluors-and-create-usermobj"></a>
 </h4>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Custom_fluors_selected</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">Custom_Sig_info</span><span class="op">$</span><span class="va">id</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">Custom_fluors_selected</span><span class="op">)</span></span>
 <span><span class="va">Custom_Sig_mtx</span>  <span class="op">=</span> <span class="fu"><a href="../reference/getSigMtx.html">getSigMtx</a></span><span class="op">(</span>ids <span class="op">=</span> <span class="va">Custom_fluors_selected</span>,Sig_list <span class="op">=</span> <span class="va">Custom_Sig_list</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">Custom_Sig_mtx</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">print</span>(Custom_fluors_selected)</span>
-<span id="cb27-2"><a href="#cb27-2" tabindex="-1"></a>[<span class="dv">1</span>] <span class="st">"SCCcustom_Cell_CD2_SB780"</span> <span class="st">"SCCcustom_Cell_AF_AF"</span> </span>
-<span id="cb27-3"><a href="#cb27-3" tabindex="-1"></a></span>
-<span id="cb27-4"><a href="#cb27-4" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">dim</span>(Custom_Sig_mtx)</span>
-<span id="cb27-5"><a href="#cb27-5" tabindex="-1"></a>[<span class="dv">1</span>] <span class="dv">51</span>  <span class="dv">2</span></span></code></pre></div>
+<div class="sourceCode" id="cb35"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">print</span>(Custom_fluors_selected)</span>
+<span id="cb35-2"><a href="#cb35-2" tabindex="-1"></a>[<span class="dv">1</span>] <span class="st">"SCCcustom_Cell_CD2_SB780"</span> <span class="st">"SCCcustom_Cell_AF_AF"</span> </span>
+<span id="cb35-3"><a href="#cb35-3" tabindex="-1"></a></span>
+<span id="cb35-4"><a href="#cb35-4" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">dim</span>(Custom_Sig_mtx)</span>
+<span id="cb35-5"><a href="#cb35-5" tabindex="-1"></a>[<span class="dv">1</span>] <span class="dv">51</span>  <span class="dv">2</span></span></code></pre></div>
 <p>If you want to use some built-in fluorescence, you can select them as
 well.</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">builtin_Sig_info</span> <span class="op">=</span> <span class="fu"><a href="../reference/querySig.html">querySig</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">builtin_fluors_selected</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">builtin_Sig_info</span><span class="op">$</span><span class="va">id</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">34</span>,<span class="fl">35</span>,<span class="fl">36</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">builtin_fluors_selected</span><span class="op">)</span></span>
 <span><span class="va">builtin_Sig_mtx</span>  <span class="op">=</span> <span class="fu"><a href="../reference/getSigMtx.html">getSigMtx</a></span><span class="op">(</span>ids <span class="op">=</span> <span class="va">builtin_fluors_selected</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">builtin_Sig_mtx</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">print</span>(builtin_fluors_selected)</span>
-<span id="cb29-2"><a href="#cb29-2" tabindex="-1"></a>[<span class="dv">1</span>] <span class="st">"SCC_Cell_CD3_BV510"</span>  <span class="st">"SCC_Cell_CD4_NFR700"</span> <span class="st">"SCC_Cell_CD8_BV570"</span> </span>
-<span id="cb29-3"><a href="#cb29-3" tabindex="-1"></a></span>
-<span id="cb29-4"><a href="#cb29-4" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">dim</span>(builtin_Sig_mtx)</span>
-<span id="cb29-5"><a href="#cb29-5" tabindex="-1"></a>[<span class="dv">1</span>] <span class="dv">51</span>  <span class="dv">3</span></span></code></pre></div>
+<div class="sourceCode" id="cb37"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">print</span>(builtin_fluors_selected)</span>
+<span id="cb37-2"><a href="#cb37-2" tabindex="-1"></a>[<span class="dv">1</span>] <span class="st">"SCC_Cell_CD3_BV510"</span>  <span class="st">"SCC_Cell_CD4_NFR700"</span> <span class="st">"SCC_Cell_CD8_BV570"</span> </span>
+<span id="cb37-3"><a href="#cb37-3" tabindex="-1"></a></span>
+<span id="cb37-4"><a href="#cb37-4" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">dim</span>(builtin_Sig_mtx)</span>
+<span id="cb37-5"><a href="#cb37-5" tabindex="-1"></a>[<span class="dv">1</span>] <span class="dv">51</span>  <span class="dv">3</span></span></code></pre></div>
 <p>Now we can bind these 2 Sig_mtx, and add res obj to UsermObj one by
 one.</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Sig_mtx</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">builtin_Sig_mtx</span>,<span class="va">Custom_Sig_mtx</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">UsermObj</span> <span class="op">=</span> <span class="fu"><a href="../reference/CreateUserm.html">CreateUserm</a></span><span class="op">(</span>A <span class="op">=</span> <span class="va">Sig_mtx</span><span class="op">)</span></span>
@@ -696,13 +886,13 @@ one.</p>
 </h4>
 <p>Prediction is the same as the basic use. Here we show some simple
 case. You can explore more when your data is ready.</p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/PredOneSpread.html">PredOneSpread</a></span><span class="op">(</span>Userm <span class="op">=</span> <span class="va">UsermObj</span>,population_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"P1"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p align="center">
 </p>
 <p><img src="../reference/figures/custom_predict_1.jpg" width="500/"></p>
 
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">UsermObj</span><span class="op">$</span><span class="va">Intensity_mtx</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span> <span class="op">=</span> <span class="fl">0</span></span>
 <span><span class="va">UsermObj</span><span class="op">$</span><span class="va">Intensity_mtx</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span> <span class="op">=</span> <span class="va">UsermObj</span><span class="op">$</span><span class="va">Intensity_mtx</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span></span>
 <span><span class="va">UsermObj</span><span class="op">$</span><span class="va">Intensity_mtx</span><span class="op">[</span>,<span class="fl">3</span><span class="op">]</span> <span class="op">=</span> <span class="va">UsermObj</span><span class="op">$</span><span class="va">Intensity_mtx</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span></span>
@@ -717,7 +907,7 @@ case. You can explore more when your data is ready.</p>
 </p>
 <p><img src="../reference/figures/custom_predict_2.jpg" width="500/"></p>
 
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Coef_mtx</span> <span class="op">=</span> <span class="fu"><a href="../reference/EstimateCoefMtx.html">EstimateCoefMtx</a></span><span class="op">(</span>Userm <span class="op">=</span> <span class="va">UsermObj</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/Vis_Mtx.html">Vis_Mtx</a></span><span class="op">(</span>mat <span class="op">=</span> <span class="va">Coef_mtx</span>,mincolor <span class="op">=</span> <span class="st">"white"</span>,midcolor <span class="op">=</span> <span class="st">"white"</span>, maxcolor <span class="op">=</span> <span class="st">"#95ABDB"</span>,</span>
 <span>        max <span class="op">=</span> <span class="fl">20</span>,mid <span class="op">=</span> <span class="fl">10</span>,min <span class="op">=</span> <span class="fl">0</span>,legend_name <span class="op">=</span> <span class="st">"Coef"</span>,</span>
@@ -726,7 +916,7 @@ case. You can explore more when your data is ready.</p>
 </p>
 <p><img src="../reference/figures/custom_predict_3.jpg" width="500/"></p>
 
-<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Hotspot_mtx</span> <span class="op">=</span> <span class="fu"><a href="../reference/EstimateHotspotMtx.html">EstimateHotspotMtx</a></span><span class="op">(</span>A <span class="op">=</span> <span class="va">UsermObj</span><span class="op">$</span><span class="va">A</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/Vis_Mtx.html">Vis_Mtx</a></span><span class="op">(</span>mat <span class="op">=</span> <span class="va">Hotspot_mtx</span>,mincolor <span class="op">=</span> <span class="st">"white"</span>,midcolor <span class="op">=</span> <span class="st">"white"</span>, maxcolor <span class="op">=</span> <span class="st">"#95ABDB"</span>,</span>
 <span>        max <span class="op">=</span> <span class="fl">2</span>,mid <span class="op">=</span> <span class="fl">1</span>,min <span class="op">=</span> <span class="fl">0</span>,legend_name <span class="op">=</span> <span class="st">"Hotspot"</span>,</span>
@@ -735,7 +925,7 @@ case. You can explore more when your data is ready.</p>
 </p>
 <p><img src="../reference/figures/custom_predict_4.jpg" width="500/"></p>
 
-<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Similarity_mtx</span> <span class="op">=</span> <span class="fu"><a href="../reference/EstimateSimilarityMtx.html">EstimateSimilarityMtx</a></span><span class="op">(</span>A <span class="op">=</span> <span class="va">UsermObj</span><span class="op">$</span><span class="va">A</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/Vis_Mtx.html">Vis_Mtx</a></span><span class="op">(</span>mat <span class="op">=</span> <span class="va">Similarity_mtx</span>,mincolor <span class="op">=</span> <span class="st">"white"</span>,midcolor <span class="op">=</span> <span class="st">"white"</span>, maxcolor <span class="op">=</span> <span class="st">"#95ABDB"</span>,</span>
 <span>        max <span class="op">=</span> <span class="fl">1</span>,mid <span class="op">=</span> <span class="fl">0.8</span>,min <span class="op">=</span> <span class="fl">0</span>,legend_name <span class="op">=</span> <span class="st">"Cosine"</span>,</span>
@@ -744,25 +934,33 @@ case. You can explore more when your data is ready.</p>
 </p>
 <p><img src="../reference/figures/custom_predict_5.jpg" width="500/"></p>
 
+<p>We can also calculate SSM</p>
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">UsermObj</span><span class="op">$</span><span class="va">fluors</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">UsermObj</span><span class="op">$</span><span class="va">A</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">ssm</span> <span class="op">=</span> <span class="fu"><a href="../reference/EstimateSSM.html">EstimateSSM</a></span><span class="op">(</span>SSM_fluor <span class="op">=</span> <span class="va">UsermObj</span><span class="op">$</span><span class="va">fluors</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span>,</span>
+<span>                  Userm <span class="op">=</span> <span class="va">UsermObj</span>,</span>
+<span>                  A <span class="op">=</span> <span class="va">UsermObj</span><span class="op">$</span><span class="va">A</span>,quiet <span class="op">=</span> <span class="cn">T</span>,custom_ssm_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">custom_dir</span>,<span class="st">"ssm"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/Vis_Mtx.html">Vis_Mtx</a></span><span class="op">(</span>mat <span class="op">=</span> <span class="va">ssm</span>,mincolor <span class="op">=</span> <span class="st">"#B02B38"</span>,midcolor <span class="op">=</span> <span class="st">"white"</span>, maxcolor <span class="op">=</span> <span class="st">"#95ABDB"</span>,</span>
+<span>        max <span class="op">=</span> <span class="fl">2</span>,mid <span class="op">=</span> <span class="fl">0</span>,min <span class="op">=</span> <span class="op">-</span><span class="fl">4</span>,legend_name <span class="op">=</span> <span class="st">"ss"</span>,</span>
+<span>        title <span class="op">=</span> <span class="st">"Spillover Spreading Matrix"</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb45"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">print</span>(UsermObj<span class="sc">$</span>fluors[<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>])</span>
+<span id="cb45-2"><a href="#cb45-2" tabindex="-1"></a>[<span class="dv">1</span>] <span class="st">"SCC_Cell_CD3_BV510"</span>       <span class="st">"SCC_Cell_CD4_NFR700"</span>      <span class="st">"SCC_Cell_CD8_BV570"</span>       <span class="st">"SCCcustom_Cell_CD2_SB780"</span></span>
+<span id="cb45-3"><a href="#cb45-3" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">print</span>(<span class="fu">colnames</span>(UsermObj<span class="sc">$</span>A))</span>
+<span id="cb45-4"><a href="#cb45-4" tabindex="-1"></a>[<span class="dv">1</span>] <span class="st">"SCC_Cell_CD3_BV510"</span>       <span class="st">"SCC_Cell_CD4_NFR700"</span>      <span class="st">"SCC_Cell_CD8_BV570"</span>       <span class="st">"SCCcustom_Cell_CD2_SB780"</span></span>
+<span id="cb45-5"><a href="#cb45-5" tabindex="-1"></a>[<span class="dv">5</span>] <span class="st">"SCCcustom_Cell_AF_AF"</span>  </span></code></pre></div>
+<p align="center">
+</p>
+<p><img src="../reference/figures/custom_predict_6.jpg" width="500/"></p>
+
 </div>
 </div>
 <div class="section level3">
 <h3 id="citation">📚 Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h3>
-<p>If you use this package in your research, please cite our paper and
-the package as:</p>
-<pre><code>Xiangming Cai, Sara Garcia-Garcia, Leo Kuhnen, Michaela Gianniou, Juan J. Garcia Vallejo. Manuscript in preparation. (to be update)
-
-Cai X (2025). _USERM: Unmixing Spread Estimation with Residual Model_. R package version
-  1.0.0,  &lt;https://github.com/xiangmingcai/USERM&gt;.
-  
-@Manual{,
-    title = {USERM: Unmixing Spread Estimation with Residual Model},
-    author = {Xiangming Cai},
-    year = {2025},
-    note = {R package version 1.0.0},
-    url = {https://github.com/xiangmingcai/USERM},
-  }</code></pre>
+<p>If you use this package in your research, please cite our paper:</p>
+<pre><code>Xiangming Cai, Sara Garcia-Garcia, Leo Kuhnen, Michaela Gianniou, Juan J. Garcia Vallejo. Unmixing Spread Estimation Based on Residual Model in Spectral Flow Cytometry. 
+bioRxiv 2026.01.27.701929; doi: https://doi.org/10.64898/2026.01.27.701929</code></pre>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
@@ -776,7 +974,7 @@ Cai X (2025). _USERM: Unmixing Spread Estimation with Residual Model_. R package
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p>Developed by <a href="https://github.com/xiangmingcai" class="external-link">Xiangming Cai</a>.</p>
 </div>
 
     </footer>

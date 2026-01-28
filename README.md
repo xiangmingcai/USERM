@@ -18,9 +18,10 @@ The USERM provides an out-of-box tool to apply the residual model approach [^1],
 The USERM also supports computing various matrixes tools for panel design, including the Coef Matrix, the Hotspot Matrix, and the Similarity Matrix, and many others.
 
 ## 🔧 Updates
-**2026-01-26**: 
+**2026-01-28**: 
 
-1. Release version 1.0.0
+1. Release version 1.0.1
+2. Update instructions
 
 ## 💻 Installation
 
@@ -56,18 +57,8 @@ Any feedback is welcomed! You may post any issue on the [Issue](https://github.c
 
 ## 📚 Citation
 
-If you use this package in your research, please cite our paper and the package as:
+If you use this package in your research, please cite our paper:
 ```
-Xiangming Cai, Sara Garcia-Garcia, Leo Kuhnen, Michaela Gianniou, Juan J. Garcia Vallejo. Manuscript in preparation.
-
-Cai X (2025). _USERM: Unmixing Spread Estimation with Residual Model_. R package version
-  1.0.0,  <https://github.com/xiangmingcai/USERM>.
-  
-@Manual{,
-    title = {USERM: Unmixing Spread Estimation with Residual Model},
-    author = {Xiangming Cai},
-    year = {2025},
-    note = {R package version 1.0.0},
-    url = {https://github.com/xiangmingcai/USERM},
-  }
+Xiangming Cai, Sara Garcia-Garcia, Leo Kuhnen, Michaela Gianniou, Juan J. Garcia Vallejo. Unmixing Spread Estimation Based on Residual Model in Spectral Flow Cytometry. 
+bioRxiv 2026.01.27.701929; doi: https://doi.org/10.64898/2026.01.27.701929
 ```
