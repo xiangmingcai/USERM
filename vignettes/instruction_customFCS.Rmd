@@ -778,7 +778,7 @@ MyFolder/
 ```
 Remember to keep these files, so that you do not need to generate them again next time!
 
-### step 3.1 check available custom fluorescence
+### step 4.1 check available custom fluorescence
 
 First, read in the Custom_Sig_list.
 ``` r
@@ -809,7 +809,7 @@ checkRes_covScatter(Res = ResObj,
                     detector1 = ResObj$detectors[1],
                     detector2 = ResObj$detectors[2])
 ``` 
-### step 3.2 Select fluors and create UsermObj
+### step 4.2 Select fluors and create UsermObj
 
 ``` r
 Custom_fluors_selected = c(Custom_Sig_info$id[c(1,2)])
@@ -858,7 +858,7 @@ for (save_suf in colnames(Custom_Sig_mtx)) {
   UsermObj = AddRes2Userm(Res = ResObj, Userm = UsermObj)
 }
 ``` 
-### step 3.3 prediction
+### step 4.3 prediction
 Prediction is the same as the basic use. Here we show some simple case. You can explore more when your data is ready.
 
 ``` r
