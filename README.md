@@ -31,7 +31,7 @@ You can install the development version of USERM from [GitHub](https://github.co
 #install dependency with BiocManager
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
-BiocManager::install("flowCore","ComplexHeatmap", "circlize")
+BiocManager::install(c("flowCore", "ComplexHeatmap", "circlize"))
 
 devtools::install_github("xiangmingcai/USERM")
 ```
