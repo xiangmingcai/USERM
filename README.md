@@ -28,6 +28,11 @@ The USERM also supports computing various matrixes tools for panel design, inclu
 You can install the development version of USERM from [GitHub](https://github.com/xiangmingcai/USERM) with:
 
 ``` r
+#install dependency with BiocManager
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("flowCore","ComplexHeatmap", "circlize")
+
 devtools::install_github("xiangmingcai/USERM")
 ```
 
