@@ -33,9 +33,9 @@ if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 BiocManager::install(c("flowCore", "ComplexHeatmap", "circlize"))
 
-if (!require("devtools", quietly = TRUE))
-    install.packages("devtools")
-devtools::install_github("xiangmingcai/USERM")
+if (!require("remotes", quietly = TRUE))
+    install.packages("remotes")
+remotes::install_github("xiangmingcai/USERM")
 ```
 
 ## 🖊 Instruction
